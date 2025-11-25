@@ -1,0 +1,23 @@
+import { ActivityStatus } from './ActivityStatus'
+import { ActivityType } from './ActivityType'
+
+export interface Activity {
+    id: string
+    functionary: string
+    name: string
+    type: ActivityType
+    description: string
+    EnrollmentStartTime: string
+    EnrollmentEndTime: string
+    startTime: string
+    endTime: string
+    CoverPath: string
+    CoverImage: string
+    maxParticipants: number
+    Attachment: string[]
+    participants: string[]
+    status: ActivityStatus
+    isFull: boolean
+    reviewReason?: string
+    duration: number
+}

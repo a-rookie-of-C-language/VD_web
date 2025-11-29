@@ -10,6 +10,7 @@ export interface Activity {
     EnrollmentStartTime: string
     EnrollmentEndTime: string
     startTime: string
+    expectedEndTime: string
     endTime: string
     CoverPath: string
     CoverImage: string

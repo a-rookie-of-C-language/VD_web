@@ -33,6 +33,11 @@ const routes: Array<RouteRecordRaw> = [
                 component: () => import('../pages/MyProjects.vue')
             },
             {
+                path: 'my-stats',
+                name: 'MyStats',
+                component: () => import('../pages/MyStats.vue')
+            },
+            {
                 path: 'admin-review',
                 name: 'AdminReview',
                 component: () => import('../pages/AdminReview.vue')
@@ -49,6 +54,27 @@ const routes: Array<RouteRecordRaw> = [
 const router = createRouter({
     history: createWebHistory(),
     routes
+})
+
+router.beforeEach((to, _, next) => {
+    const userInfoStr = localStorage.getItem('userInfo')
+    if (to.meta.requiresSuperAdmin) {
+        if (!userInfoStr) {
+            next('/login')
+            return
+        }
+        try {
+            const user = JSON.parse(userInfoStr)
+            if (user.role !== 'superAdmin') {
+                next('/') // Or some 403 page
+                return
+            }
+        } catch {
+            next('/login')
+            return
+        }
+    }
+    next()
 })
 
 export default router

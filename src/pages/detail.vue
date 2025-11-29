@@ -8,7 +8,7 @@ import type { Activity } from '@/entity/Activity'
 import { ActivityStatus } from '@/entity/ActivityStatus'
 import { ActivityType } from '@/entity/ActivityType'
 import { useUserStore } from '@/stores/useUserStore'
-import { userService } from '@/services/userService'
+
 
 const route = useRoute()
 const router = useRouter()
@@ -16,6 +16,17 @@ const userStore = useUserStore()
 const activity = ref<Activity | null>(null)
 const loading = ref(true)
 const enrolling = ref(false)
+const isEnrolled = computed(() => {
+  const sn = userStore.studentNo.value
+  return !!activity.value?.participants?.includes(sn)
+})
+const canUnenroll = computed(() => {
+  if (!activity.value) return false
+  const endTs = activity.value.EnrollmentEndTime ? new Date(activity.value.EnrollmentEndTime).getTime() : 0
+  const nowTs = Date.now()
+  const notFunctionary = activity.value.functionary !== userStore.studentNo.value
+  return isEnrolled.value && notFunctionary && nowTs <= endTs
+})
 const functionaryName = ref<string>('')
 
 // Fetch activity details
@@ -44,35 +55,59 @@ const fetchActivity = async () => {
 }
 
 // Handle enrollment
-const handleEnroll = async () => {
+const handleToggleEnroll = async () => {
   if (!activity.value) return
 
-  if (!userStore.isLoggedIn) {
+  if (!userStore.isLoggedIn.value) {
     ElMessage.warning('请先登录')
     await router.push('/login')
     return
   }
 
-  try {
-    await ElMessageBox.confirm('确定要报名参加该活动吗？', '报名确认', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'info'
-    })
+  // Prevent functionary from unenrolling
+  if (isEnrolled.value && activity.value.functionary === userStore.studentNo.value) {
+    ElMessage.warning('负责人无法退出自己负责的项目')
+    return
+  }
 
-    enrolling.value = true
-    const response = await activityService.enrollActivity(activity.value.id, userStore.studentNo)
-    
-    if (response.code === 200) {
-      ElMessage.success('报名成功')
-      await fetchActivity() // Refresh data
+  try {
+    if (!isEnrolled.value) {
+      await ElMessageBox.confirm('确定要报名参加该活动吗？', '报名确认', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'info'
+      })
+      enrolling.value = true
+      const response = await activityService.enrollActivity(activity.value.id, userStore.studentNo.value)
+      if (response.code === 200) {
+        ElMessage.success('报名成功')
+        await fetchActivity()
+      } else {
+        ElMessage.error(response.message || '报名失败')
+      }
     } else {
-      ElMessage.error(response.message || '报名失败')
+      if (!canUnenroll.value) {
+        ElMessage.warning('报名已结束或负责人账号，无法取消报名')
+        return
+      }
+      await ElMessageBox.confirm('确定要取消报名吗？', '取消确认', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      })
+      enrolling.value = true
+      const response = await activityService.unenrollActivity(activity.value.id)
+      if (response.code === 200) {
+        ElMessage.success('已取消报名')
+        await fetchActivity()
+      } else {
+        ElMessage.error(response.message || '取消报名失败')
+      }
     }
   } catch (error) {
     if (error !== 'cancel') {
-      console.error('Enrollment failed:', error)
-      ElMessage.error('报名请求失败')
+      console.error('Enrollment toggle failed:', error)
+      ElMessage.error('操作失败')
     }
   } finally {
     enrolling.value = false
@@ -80,8 +115,8 @@ const handleEnroll = async () => {
 }
 
 // Helpers
-const formatDate = (dateString: string) => {
-  if (!dateString) return ''
+const formatDate = (dateString: string | undefined) => {
+  if (!dateString) return '暂无'
   return new Date(dateString).toLocaleString('zh-CN', {
     year: 'numeric',
     month: '2-digit',
@@ -133,6 +168,7 @@ const getStatusType = (status: ActivityStatus): 'success' | 'warning' | 'info' |
 
 const canEnroll = computed(() => {
   if (!activity.value) return false
+  if (isEnrolled.value) return canUnenroll.value
   return activity.value.status === ActivityStatus.EnrollmentStarted && !activity.value.isFull
 })
 
@@ -205,9 +241,9 @@ onMounted(() => {
               <el-icon><Timer /></el-icon>
               <span class="label">活动时间:</span>
               <div class="time-block">
-                <div>{{ formatDate(activity.startTime) }}</div>
-                <div class="to">至</div>
-                <div>{{ formatDate(activity.endTime) }}</div>
+                <div>开始: {{ formatDate(activity.startTime) }}</div>
+                <div>预计结束: {{ formatDate(activity.expectedEndTime) }}</div>
+                <div>实际结束: {{ activity.endTime ? formatDate(activity.endTime) : '活动未结束' }}</div>
               </div>
             </div>
 
@@ -227,11 +263,15 @@ onMounted(() => {
                 type="primary" 
                 size="large" 
                 class="enroll-btn"
-                :disabled="!canEnroll"
+                :disabled="!canEnroll && !canUnenroll"
                 :loading="enrolling"
-                @click="handleEnroll"
+                @click="handleToggleEnroll"
               >
-                {{ canEnroll ? '立即报名' : getStatusText(activity.status) }}
+                {{ isEnrolled 
+                  ? (activity.functionary === userStore.studentNo.value 
+                    ? '负责人(不可退出)' 
+                    : (canUnenroll ? '取消报名' : '报名结束(不可取消)')) 
+                  : (canEnroll ? '立即报名' : getStatusText(activity.status)) }}
               </el-button>
             </div>
           </el-card>

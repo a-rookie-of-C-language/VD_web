@@ -6,7 +6,7 @@ import { activityService, type ActivityListParams } from '@/services/activitySer
 import type { Activity } from '@/entity/Activity'
 import { ActivityStatus } from '@/entity/ActivityStatus'
 import { ActivityType } from '@/entity/ActivityType'
-import { userService } from '@/services/userService'
+import {userService} from "@/services/userService.ts";
 
 // State
 const activities = ref<Activity[]>([])
@@ -14,7 +14,6 @@ const loading = ref(false)
 const currentPage = ref(1)
 const pageSize = ref(6)
 const total = ref(0)
-const nameMap = ref<Record<string, string>>({})
 
 // Filters
 const searchName = ref('')
@@ -42,20 +41,10 @@ const fetchActivities = async () => {
   loading.value = true
   try {
     const response = await activityService.getActivities(filterParams.value)
-    activities.value = (response.items || []).filter(a => a.status !== ActivityStatus.UnderReview && a.status !== ActivityStatus.FailReview)
+    activities.value = (response.items || []).filter(a => a.status !== ActivityStatus.UnderReview
+        && a.status !== ActivityStatus.FailReview)
     total.value = response.total || 0
     currentPage.value = response.page || 1
-    // const ids = Array.from(new Set(activities.value.map(a => a.functionary).filter(Boolean)))
-    // await Promise.all(ids.map(async id => {
-    //   if (!nameMap.value[id]) {
-    //     try {
-    //       const u = await userService.getUserByStudentNo(id)
-    //       nameMap.value[id] = u.username
-    //     } catch {
-    //       nameMap.value[id] = id
-    //     }
-    //   }
-    // }))
   } catch (error) {
     console.error('Failed to fetch activities:', error)
     ElMessage.error('加载活动列表失败，请稍后重试')
@@ -148,6 +137,16 @@ const getPublicStatus = (activity: Activity): ActivityStatus => {
   if (now >= ee && now < st) return ActivityStatus.EnrollmentEnded
   if (now >= st && now < et) return ActivityStatus.ActivityStarted
   return ActivityStatus.ActivityEnded
+}
+
+const nameMap = ref<Record<string, string>>({})
+const getUsername = (studentNo: string): string => {
+  const cached = nameMap.value[studentNo]
+  if (cached) return cached
+  userService.getUserByStudentNo(studentNo)
+    .then(user => { nameMap.value[studentNo] = user?.username || studentNo })
+    .catch(() => {})
+  return studentNo
 }
 
 // Initialize
@@ -243,7 +242,7 @@ onMounted(() => {
             </div>
 
             <div class="info-row">
-              <span class="info-text">负责人: {{ activity.functionary }}</span>
+              <span class="info-text">负责人: {{ getUsername(activity.functionary) }}</span>
             </div>
 
             <div class="info-row">

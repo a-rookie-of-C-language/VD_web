@@ -61,6 +61,7 @@ export const activityService = {
         if (activity.enrollmentStartTime) formData.append('enrollmentStartTime', String(activity.enrollmentStartTime))
         if (activity.enrollmentEndTime) formData.append('enrollmentEndTime', String(activity.enrollmentEndTime))
         if (activity.startTime) formData.append('startTime', String(activity.startTime))
+        if (activity.expectedEndTime) formData.append('expectedEndTime', String(activity.expectedEndTime))
         if (activity.endTime) formData.append('endTime', String(activity.endTime))
         if (activity.maxParticipants !== undefined) formData.append('maxParticipants', String(activity.maxParticipants))
         if (activity.status) formData.append('status', String(activity.status))
@@ -91,6 +92,7 @@ export const activityService = {
         if (activity.enrollmentStartTime) formData.append('enrollmentStartTime', String(activity.enrollmentStartTime))
         if (activity.enrollmentEndTime) formData.append('enrollmentEndTime', String(activity.enrollmentEndTime))
         if (activity.startTime) formData.append('startTime', String(activity.startTime))
+        if (activity.expectedEndTime) formData.append('expectedEndTime', String(activity.expectedEndTime))
         if (activity.endTime) formData.append('endTime', String(activity.endTime))
         if (activity.maxParticipants !== undefined) formData.append('maxParticipants', String(activity.maxParticipants))
         if (activity.status) formData.append('status', String(activity.status))
@@ -135,11 +137,24 @@ export const activityService = {
         return response.data
     },
 
-    async fetchMyActivities(): Promise<ActivityListResponse> {
+    async unenrollActivity(id: string): Promise<EnrollmentResponse> {
+        const token = localStorage.getItem('token')
+        const response = await axios.post<EnrollmentResponse>(
+            `${API_BASE_URL}/activities/${id}/unenroll`,
+            null,
+            {
+                headers: { Authorization: `Bearer ${String(token || '')}` }
+            }
+        )
+        return response.data
+    },
+
+    async fetchMyActivities(page: number = 1, pageSize: number = 10): Promise<ActivityListResponse> {
         const token = localStorage.getItem('token')
         const response = await axios.get<{ code: number; message: string; data: ActivityListResponse }>(
             `${API_BASE_URL}/activities/MyActivities`,
             {
+                params: { page, pageSize },
                 headers: { Authorization: `Bearer ${String(token || '')}` }
             }
         )
@@ -156,6 +171,18 @@ export const activityService = {
                 headers: { Authorization: `Bearer ${String(token || '')}` }
             }
         )
+        return response.data.data
+    },
+
+    async fetchMyStatus(): Promise<{ totalDuration: number; totalActivities: number; activities: Activity[] }> {
+        const token = localStorage.getItem('token')
+        const response = await axios.get<{
+            code: number
+            message: string
+            data: { totalDuration: number; totalActivities: number; activities: Activity[] }
+        }>(`${API_BASE_URL}/activities/MyStatus`, {
+            headers: { Authorization: `Bearer ${String(token || '')}` }
+        })
         return response.data.data
     }
 }

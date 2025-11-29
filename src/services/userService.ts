@@ -47,7 +47,7 @@ export const userService = {
         const response = await axios.get<ApiResponse<User>>(
             `${API_BASE_URL}/user/getUser`,
             {
-                params: { token: authToken }
+                headers: { Authorization: `Bearer ${authToken}` }
             }
         )
 
@@ -58,21 +58,22 @@ export const userService = {
         }
     },
 
-    /**
-     * Get user by studentNo (for resolving names)
-     */
-    async getUserByStudentNo(studentNo: string): Promise<User> {
-        const token = localStorage.getItem('token')
-        const response = await axios.get<ApiResponse<User>>(
-            `${API_BASE_URL}/user/getUserByStudentNo`,
-            { params: { studentNo }, headers: { Authorization: `Bearer ${String(token || '')}` } }
-        )
-        if (response.data.code === 200) {
-            return response.data.data
-        } else {
-            throw new Error(response.data.message)
+    async getUserByStudentNo(studentNo: string): Promise<User | null> {
+        try {
+            const response = await axios.get<ApiResponse<User>>(
+                `${API_BASE_URL}/user/getUserByStudentNo`,
+                { params: { studentNo } }
+            )
+            if (response.data.code === 200) {
+                return response.data.data
+            }
+            return null
+        } catch {
+            return null
         }
     },
+
+
 
     /**
      * Get cached user info from localStorage

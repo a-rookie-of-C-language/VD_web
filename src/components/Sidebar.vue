@@ -1,7 +1,16 @@
 <script setup lang="ts">
 import { useRouter, useRoute } from 'vue-router'
 import { computed, onMounted, watch } from 'vue'
-import { Document, Plus, User as UserIcon, Loading, SwitchButton } from '@element-plus/icons-vue'
+import { 
+  Document, 
+  Plus, 
+  User as UserIcon, 
+  Loading, 
+  SwitchButton,
+  DataLine,
+  Monitor,
+  Files
+} from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/stores/useUserStore'
 
@@ -23,6 +32,30 @@ const roleLabels: Record<string, string> = {
   functionary: '负责人',
   superAdmin: '超级管理员'
 }
+
+interface MenuItem {
+  index: string
+  label: string
+  icon: any
+  roles?: string[]
+}
+
+const allMenuItems: MenuItem[] = [
+  { index: '/activities', label: '活动列表', icon: Files },
+  { index: '/add-activity', label: '发布活动', icon: Plus, roles: ['functionary'] },
+  { index: '/my-projects', label: '我的项目', icon: Document, roles: ['functionary','superAdmin'] },
+  { index: '/my-stats', label: '我的时长', icon: DataLine },
+  { index: '/admin-review', label: '管理员审核', icon: Document, roles: ['admin', 'superAdmin'] },
+  { index: '/monitoring', label: '系统监控', icon: Monitor, roles: ['superAdmin'] }
+]
+
+const visibleMenuItems = computed(() => {
+  const currentRole = roleClean.value || 'user'
+  return allMenuItems.filter(item => {
+    if (!item.roles) return true
+    return item.roles.includes(currentRole)
+  })
+})
 
 const handleLogout = async () => {
   try {
@@ -62,26 +95,15 @@ watch(() => route.path, () => {
       <h1 class="logo-text">志愿活动管理</h1>
     </div>
     
-    <el-menu-item index="/activities">
-      <el-icon><Document /></el-icon>
-      <span>活动列表</span>
+    <el-menu-item 
+      v-for="item in visibleMenuItems" 
+      :key="item.index" 
+      :index="item.index"
+    >
+      <el-icon><component :is="item.icon" /></el-icon>
+      <span>{{ item.label }}</span>
     </el-menu-item>
     
-    <el-menu-item v-if="roleClean === 'functionary'" index="/add-activity">
-      <el-icon><Plus /></el-icon>
-      <span>发布活动</span>
-    </el-menu-item>
-
-    <el-menu-item v-if="roleClean === 'functionary'" index="/my-projects">
-      <el-icon><Document /></el-icon>
-      <span>我的项目</span>
-    </el-menu-item>
-
-    <el-menu-item v-if="roleClean === 'admin' || roleClean === 'superAdmin'" index="/admin-review">
-      <el-icon><Document /></el-icon>
-      <span>管理员审核</span>
-    </el-menu-item>
-
     <!-- User Info Section at Bottom -->
     <div class="user-info-container">
       <el-divider />
@@ -96,7 +118,7 @@ watch(() => route.path, () => {
           || roleClean === 'superAdmin' ? 'danger'
           : roleClean === 'functionary' ? 'warning'
           : 'info'" size="small" class="user-role">
-            {{ roleLabels[roleClean] || roleClean }}
+            {{ roleLabels[roleClean || 'user'] || roleClean}}
           </el-tag>
         </div>
         <el-button 

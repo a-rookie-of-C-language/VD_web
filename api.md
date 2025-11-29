@@ -72,6 +72,7 @@
   - `isFull`
 - 请求头：`Authorization: Bearer <JWT_TOKEN>`（可选；用于识别用户角色以决定可见范围）
 - 响应：
+  - 返回 `ActivityPageVO`：包含 `items`、`total`、`page`、`pageSize`
 ```
 {
   "items": [Activity, ...],
@@ -147,6 +148,29 @@ curl -X PUT \
 - 查询参数：
   - `page`（默认 `1`）、`pageSize`（默认 `10`）
 - 响应：同分页结构，返回当前登录学号为 `functionary` 的全部活动（不隐藏状态）
+ - 示例：
+ ```bash
+ curl -H "Authorization: Bearer <JWT_TOKEN>" \
+  "http://localhost:8080/api/activities/MyActivities?page=1&pageSize=10"
+ ```
+
+### 我的活动状态
+- `GET /api/activities/MyStatus`
+- 请求头：`Authorization: Bearer <JWT_TOKEN>`（必需）
+- 行为：返回当前登录用户参与的活动列表、总时长和总活动数
+- 响应：
+```
+{
+  "totalDuration": 2.5,
+  "totalActivities": 1,
+  "activities": [Activity, ...]
+}
+```
+- 示例：
+```bash
+curl -H "Authorization: Bearer <JWT_TOKEN>" \
+  "http://localhost:8080/api/activities/MyStatus"
+```
 
 ### 审核活动（更新状态）
 - `POST /api/activities/{id}/review?approve=<true|false>`
@@ -160,6 +184,16 @@ curl -X PUT \
   - 当报名时间缺失：返回 `400 INVALID_TIME`
 - 响应：更新后的 `Activity`
   - 备注：审核通过后系统会继续通过延时队列推进到“报名结束/活动开始/活动结束”等状态
+ - 示例：
+ ```bash
+ # 审核通过
+ curl -X POST -H "Authorization: Bearer <JWT_TOKEN>" \
+   "http://localhost:8080/api/activities/{id}/review?approve=true"
+
+ # 审核拒绝
+ curl -X POST -H "Authorization: Bearer <JWT_TOKEN>" \
+   "http://localhost:8080/api/activities/{id}/review?approve=false"
+ ```
 
 ### 报名活动
 - `POST /api/activities/{id}/enroll?studentNo=<学号>`
@@ -172,7 +206,7 @@ curl -X PUT \
 ## 封面上传与路径
 - 封面图片通过“创建活动/更新活动”接口的 `coverFile` 字段上传。
 - 约束：
-  - 文件大小最大 3MB
+  - 文件大小最大 20MB
   - 格式：jpg、jpeg、png、gif、webp
   - 存储字段：`Activity.CoverPath` 为相对路径，长度不超过 255 字符
 - 路径示例：`/covers/xxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx.jpg`
@@ -180,8 +214,9 @@ curl -X PUT \
 
 ## 用户（Users）
 ### 获取用户信息
-- `GET /user/getUser?token=<token>`
-- 行为：解析 `token` 获取用户信息（不查询数据库）
+- `GET /user/getUser`
+- 请求头：`Authorization: Bearer <JWT_TOKEN>`（必需）
+- 行为：基于认证主体返回当前登录用户信息
 - 成功响应：
 ```
 {
@@ -195,8 +230,7 @@ curl -X PUT \
 }
 ```
 - 失败响应：
-  - 缺少必要信息：`{"code":500, "message":"Missing required user information in token"}`
-  - 解析失败：`{"code":500, "message":"Failed to parse token: <详细错误>"}`
+  - 未认证：`{"code":401, "message":"UNAUTHORIZED"}`
 
 ### 登录
 - `GET /user/login?studentNo=<学号>&password=<密码>`
@@ -220,3 +254,72 @@ curl -X PUT \
 - `admin`
 - `functionary`
 - `superAdmin`
+
+## 监控（Monitoring）
+- 权限：仅超级管理员可访问；请求头：`Authorization: Bearer <JWT_TOKEN>`（必需）
+### 总览监控
+- `GET /api/monitoring/overview`
+- 行为：返回系统与业务概览指标，并包含告警统计与最近告警
+- 响应示例结构：
+```
+{
+  "cpu": { "usage": 0.23 },
+  "memory": { "used": 123456789 },
+  "alerts": {
+    "statistics": { /* 告警统计 */ },
+    "recentAlerts": [ /* 最近告警列表 */ ]
+  }
+}
+```
+
+- `GET /api/monitoring/system`
+- 行为：返回系统指标（CPU、内存、线程等）
+
+- `GET /api/monitoring/rabbitmq`
+- 行为：返回队列状态与指标
+
+- `GET /api/monitoring/business`
+- 行为：返回业务指标（活动数、报名数、志愿时长等）
+
+- `GET /api/monitoring/metrics`
+- 行为：返回所有监控指标的汇总
+
+### 告警列表
+- `GET /api/monitoring/alerts?limit=<N>`
+- 查询参数：`limit`（默认 20）
+- 响应示例结构：
+```
+{
+  "alerts": [ /* 告警列表 */ ],
+  "statistics": { /* 告警统计 */ }
+}
+```
+
+### 操作日志
+- `GET /api/monitoring/logs`
+- 查询参数：
+  - `studentNo`（可选）
+  - `operation`（可选）
+  - `startTime`、`endTime`（可选，ISO DateTime）
+  - `page`（默认 `1`）、`pageSize`（默认 `20`）
+- 响应：
+```
+{
+  "logs": [ /* 操作日志 */ ],
+  "total": 123,
+  "page": 1,
+  "pageSize": 20
+}
+```
+
+### 健康检查
+- `GET /api/monitoring/health`
+- 行为：返回服务健康状态与时间戳
+- 响应示例结构：
+```
+{
+  "status": "UP",
+  "rabbitmq": "UP",
+  "timestamp": 1732612345678
+}
+```

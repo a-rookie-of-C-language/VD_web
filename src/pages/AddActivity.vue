@@ -20,7 +20,7 @@ const form = reactive({
   enrollmentStartTime: '',
   enrollmentEndTime: '',
   startTime: '',
-  endTime: '',
+  extendEndTime: '',
   maxParticipants: 10,
   coverImage: null as File | null,
   duration: 0,
@@ -47,7 +47,7 @@ const rules = {
   enrollmentStartTime: [{ required: true, message: '请选择报名开始时间', trigger: 'change' }],
   enrollmentEndTime: [{ required: true, message: '请选择报名结束时间', trigger: 'change' }],
   startTime: [{ required: true, message: '请选择活动开始时间', trigger: 'change' }],
-  endTime: [{ required: true, message: '请选择活动结束时间', trigger: 'change' }],
+  expectedEndTime: [{ required: true, message: '请选择活动结束时间', trigger: 'change' }],
   duration:[{required: true, message: '请输入志愿时长', trigger: 'change'}]
 }
 
@@ -115,7 +115,7 @@ const handleSubmit = async () => {
         enrollmentStartTime: formatDateTime(form.enrollmentStartTime),
         enrollmentEndTime: formatDateTime(form.enrollmentEndTime),
         startTime: formatDateTime(form.startTime),
-        endTime: formatDateTime(form.endTime),
+        expectedEndTime: formatDateTime(form.extendEndTime),
         maxParticipants: form.maxParticipants,
         attachment: [],
         participants: [],
@@ -208,7 +208,7 @@ const handleCancel = () => {
             <img v-if="imageUrl" :src="imageUrl" class="cover-image"  alt=""/>
             <el-icon v-else class="cover-uploader-icon"><Plus /></el-icon>
           </el-upload>
-          <div class="upload-tip">支持 jpg、png 格式,大小不超过 3MB</div>
+          <div class="upload-tip">支持 jpg、png 格式,大小不超过 20MB</div>
         </el-form-item>
 
         <!-- Time & Capacity Section -->
@@ -253,7 +253,7 @@ const handleCancel = () => {
           <el-col :span="12">
             <el-form-item label="活动结束时间" prop="endTime">
               <el-date-picker
-                v-model="form.endTime"
+                v-model="form.extendEndTime"
                 type="datetime"
                 placeholder="选择预期活动结束时间"
                 style="width: 100%"

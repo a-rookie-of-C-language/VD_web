@@ -2,13 +2,11 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { activityService } from '@/services/activityService'
-import { userService } from '@/services/userService'
 import type { Activity } from '@/entity/Activity'
 import { ActivityStatus } from '@/entity/ActivityStatus'
 
 const loading = ref(false)
 const activities = ref<Activity[]>([])
-const nameMap = ref<Record<string, string>>({})
 
 const fetchUnderReview = async () => {
   loading.value = true

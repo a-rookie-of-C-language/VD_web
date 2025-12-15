@@ -37,9 +37,9 @@ npm run preview
 
 - Web 构建：`npm run build`（输出到 `dist/`）
 - 桌面打包：`npm run electron:build`（先构建 Web，再用 electron-builder 打包，输出到 `release/`）
-  - Windows：`nsis`
-  - macOS：`dmg`
-  - Linux：`AppImage`
+    - Windows：`nsis`
+    - macOS：`dmg`
+    - Linux：`AppImage`
 
 ## 目录结构
 
@@ -77,12 +77,12 @@ VD/
 - 主进程入口：`electron/main.cjs`（如 `electron/main.cjs:24` 开始初始化与检查更新）
 - 开发模式会加载 `VITE_DEV_SERVER_URL` 指向的 Vite 地址（见 `electron/main.cjs:16-21`）
 - 生产模式自动更新：
-  - 通过环境变量 `UPDATE_BASE_URL` 配置更新源（generic provider），例如：
-    - Windows PowerShell：`$Env:UPDATE_BASE_URL = "https://your-domain/updates/"`
-  - 应用启动后，若 `app.isPackaged` 且存在 `UPDATE_BASE_URL`，会：
-    - 设置更新源并在启动约 5 秒后检测更新（见 `electron/main.cjs:24-61`）
-    - 提示“发现新版本”→下载→“更新已下载”→安装并重启
-  - 注意：`package.json` 的 `build.publish` 当前为 `null`，意味着未内置发布渠道。部署时需将 `electron-builder` 生成的产物（如 `latest.yml` 与安装包）放到 `UPDATE_BASE_URL` 对应的静态可访问目录。
+    - 通过环境变量 `UPDATE_BASE_URL` 配置更新源（generic provider），例如：
+        - Windows PowerShell：`$Env:UPDATE_BASE_URL = "https://your-domain/updates/"`
+    - 应用启动后，若 `app.isPackaged` 且存在 `UPDATE_BASE_URL`，会：
+        - 设置更新源并在启动约 5 秒后检测更新（见 `electron/main.cjs:24-61`）
+        - 提示“发现新版本”→下载→“更新已下载”→安装并重启
+    - 注意：`package.json` 的 `build.publish` 当前为 `null`，意味着未内置发布渠道。部署时需将 `electron-builder` 生成的产物（如 `latest.yml` 与安装包）放到 `UPDATE_BASE_URL` 对应的静态可访问目录。
 
 ## 后端接口与配置
 

@@ -15,6 +15,7 @@ coverage
 *.local
 
 need.md
+my-release-key.jks
 
 # Editor directories and files
 .vscode/*

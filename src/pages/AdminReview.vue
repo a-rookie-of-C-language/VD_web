@@ -10,6 +10,7 @@ const activeTab = ref('normal')
 const loading = ref(false)
 const activities = ref<Activity[]>([])
 const pendingActivities = ref<Activity[]>([])
+const personalRequests = ref<Activity[]>([])
 
 const fetchUnderReview = async () => {
   loading.value = true
@@ -37,11 +38,25 @@ const fetchPendingActivities = async () => {
   }
 }
 
+const fetchPersonalRequests = async () => {
+  loading.value = true
+  try {
+    personalRequests.value = await activityService.getPendingRequests()
+  } catch (e) {
+    console.error(e)
+    ElMessage.error('加载个人申请失败')
+  } finally {
+    loading.value = false
+  }
+}
+
 const fetchData = () => {
   if (activeTab.value === 'normal') {
     fetchUnderReview()
-  } else {
+  } else if (activeTab.value === 'imported') {
     fetchPendingActivities()
+  } else {
+    fetchPersonalRequests()
   }
 }
 
@@ -68,8 +83,10 @@ const approve = async (a: Activity) => {
     await ElMessageBox.confirm('确认通过该项目审核吗？','审核通过',{ type: 'success' })
     if (activeTab.value === 'normal') {
       await activityService.reviewActivity(a.id, true)
-    } else {
+    } else if (activeTab.value === 'imported') {
       await activityService.approvePendingActivity(a.id)
+    } else {
+      await activityService.reviewRequest(a.id, true)
     }
     ElMessage.success('已通过审核')
     detailVisible.value = false
@@ -93,8 +110,10 @@ const reject = async (a: Activity) => {
     
     if (activeTab.value === 'normal') {
       await activityService.reviewActivity(a.id, false, value)
-    } else {
+    } else if (activeTab.value === 'imported') {
       await activityService.rejectPendingActivity(a.id, value)
+    } else {
+      await activityService.reviewRequest(a.id, false, value)
     }
     ElMessage.success('已拒绝')
     detailVisible.value = false
@@ -157,15 +176,39 @@ onMounted(fetchData)
             </el-table-column>
           </el-table>
         </el-tab-pane>
+        <el-tab-pane label="个人申请审核" name="personal">
+          <el-table :data="personalRequests" v-loading="loading" style="width:100%">
+            <el-table-column prop="name" label="名称" min-width="160" />
+            <el-table-column label="申请人" width="120">
+              <template #default="{ row }">
+                <el-link type="primary" @click="showDetail(row)">
+                  {{ row.functionary }}
+                </el-link>
+              </template>
+            </el-table-column>
+            <el-table-column label="时长" width="100">
+               <template #default="{ row }">
+                   {{ row.duration }} 小时
+               </template>
+            </el-table-column>
+            <el-table-column prop="description" label="描述" min-width="200" />
+            <el-table-column label="操作" width="220">
+              <template #default="{ row }">
+                <el-button size="small" type="success" @click="approve(row)">通过</el-button>
+                <el-button size="small" type="danger" @click="reject(row)">拒绝</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-tab-pane>
       </el-tabs>
 
       <!-- 移动端卡片列表 (共享) -->
       <div class="activity-card-list" v-loading="loading">
-        <div v-if="(activeTab === 'normal' ? activities : pendingActivities).length === 0" style="text-align: center; padding: 20px; color: #909399;">
+        <div v-if="(activeTab === 'normal' ? activities : (activeTab === 'imported' ? pendingActivities : personalRequests)).length === 0" style="text-align: center; padding: 20px; color: #909399;">
           暂无审核中的项目
         </div>
         <el-card
-          v-for="item in (activeTab === 'normal' ? activities : pendingActivities)"
+          v-for="item in (activeTab === 'normal' ? activities : (activeTab === 'imported' ? pendingActivities : personalRequests))"
           :key="item.id"
           class="activity-card"
           shadow="hover"
@@ -213,8 +256,19 @@ onMounted(fetchData)
           <span v-else>无封面</span>
         </el-descriptions-item>
         <el-descriptions-item label="附件" v-if="currentActivity.Attachment && currentActivity.Attachment.length">
-          <div v-for="(file, index) in currentActivity.Attachment" :key="index">
-            {{ file }}
+          <div v-for="(file, index) in currentActivity.Attachment" :key="index" class="attachment-item">
+            <template v-if="file.match(/\.(jpg|jpeg|png|gif|bmp|webp)$/i)">
+               <el-image 
+                 :src="file" 
+                 :preview-src-list="[file]" 
+                 fit="cover" 
+                 class="attachment-img"
+                 hide-on-click-modal
+               />
+            </template>
+            <template v-else>
+               <el-link :href="file" target="_blank" type="primary">{{ file.split('/').pop() || '下载附件' }}</el-link>
+            </template>
           </div>
         </el-descriptions-item>
       </el-descriptions>
@@ -406,6 +460,17 @@ onMounted(fetchData)
   font-size: 16px;
   margin-bottom: 10px;
   color: #303133;
+}
+
+.attachment-item {
+  margin-bottom: 8px;
+}
+
+.attachment-img {
+  width: 100px;
+  height: 100px;
+  border-radius: 4px;
+  border: 1px solid #ebeef5;
 }
 </style>
 

@@ -43,6 +43,11 @@ const routes: Array<RouteRecordRaw> = [
                 component: () => import('../pages/MyStats.vue')
             },
             {
+                path: 'request-hours',
+                name: 'RequestHours',
+                component: () => import('../pages/RequestHours.vue')
+            },
+            {
                 path: 'admin-review',
                 name: 'AdminReview',
                 component: () => import('../pages/AdminReview.vue')

@@ -311,5 +311,52 @@ export const activityService = {
             headers: { Authorization: `Bearer ${String(token || '')}` }
         })
         return response.data.data
+    },
+
+    // --- Personal Hour Requests ---
+
+    async requestHours(data: any): Promise<void> {
+        const formData = new FormData()
+        if (data.name) formData.append('name', data.name)
+        if (data.functionary) formData.append('functionary', data.functionary)
+        if (data.type) formData.append('type', data.type)
+        if (data.description) formData.append('description', data.description)
+        if (data.startTime) formData.append('startTime', data.startTime)
+        if (data.endTime) formData.append('endTime', data.endTime)
+        if (data.duration) formData.append('duration', String(data.duration))
+        if (data.files && Array.isArray(data.files)) {
+            data.files.forEach((f: File) => formData.append('files[]', f))
+        }
+
+        const token = localStorage.getItem('token')
+        await axios.post(`${API_BASE_URL}/activities/request_hours`, formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+                Authorization: `Bearer ${String(token || '')}`
+            }
+        })
+    },
+
+    async getPendingRequests(): Promise<Activity[]> {
+        const token = localStorage.getItem('token')
+        const response = await axios.get<{ data: { items: Activity[] } }>(`${API_BASE_URL}/activities/pending_requests`, {
+            headers: { Authorization: `Bearer ${String(token || '')}` }
+        })
+        return response.data.data.items || []
+    },
+
+    async reviewRequest(id: string, approved: boolean, reason?: string): Promise<void> {
+        const token = localStorage.getItem('token')
+        await axios.post(`${API_BASE_URL}/activities/review_request/${id}`, { approved, reason }, {
+            headers: { Authorization: `Bearer ${String(token || '')}` }
+        })
+    },
+
+    async getMyRequests(): Promise<Activity[]> {
+        const token = localStorage.getItem('token')
+        const response = await axios.get<{ data: { items: Activity[] } }>(`${API_BASE_URL}/activities/my_requests`, {
+            headers: { Authorization: `Bearer ${String(token || '')}` }
+        })
+        return response.data.data.items || []
     }
 }

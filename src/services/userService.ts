@@ -2,7 +2,7 @@ import axios from 'axios'
 import type { LoginResponse, User } from '@/entity/User'
 
 
-const API_BASE_URL = 'http://localhost:8080'
+const API_BASE_URL = 'https://unscreenable-cathrine-unprejudicially.ngrok-free.dev/api'
 
 export interface ApiResponse<T> {
     code: number

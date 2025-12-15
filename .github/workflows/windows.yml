@@ -33,14 +33,36 @@ jobs:
         with:
           name: VolunteerDashboard-Setup.exe
           path: release/*.exe
+      
+      - name: Determine Package Version
+        id: pkg_version
+        shell: pwsh
+        run: |
+          $version = node -p "require('./package.json').version"
+          echo "version=$version" >> $env:GITHUB_OUTPUT
+      
+      - name: Compute Release Tag
+        id: compute_tag
+        shell: pwsh
+        run: |
+          if ($env:GITHUB_REF -like "refs/tags/*") {
+            $tag = $env:GITHUB_REF_NAME
+            $prerelease = "false"
+          } else {
+            $version = "${{ steps.pkg_version.outputs.version }}"
+            $tag = "v$version-$($env:GITHUB_RUN_NUMBER)"
+            $prerelease = "true"
+          }
+          echo "tag=$tag" >> $env:GITHUB_OUTPUT
+          echo "prerelease=$prerelease" >> $env:GITHUB_OUTPUT
 
       - name: Publish GitHub Release
-        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
-          name: VolunteerDashboard ${{ github.ref_name }}
+          tag_name: ${{ steps.compute_tag.outputs.tag }}
+          name: VolunteerDashboard ${{ steps.compute_tag.outputs.tag }}
           generate_release_notes: true
+          prerelease: ${{ steps.compute_tag.outputs.prerelease }}
           files: |
             release/latest.yml
             release/*.blockmap

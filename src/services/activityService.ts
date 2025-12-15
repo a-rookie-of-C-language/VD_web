@@ -3,7 +3,7 @@ import type { Activity } from '@/entity/Activity'
 import type { ActivityStatus } from '@/entity/ActivityStatus'
 import type { ActivityType } from '@/entity/ActivityType'
 
-const API_BASE_URL = 'http://localhost:8080/api'
+const API_BASE_URL = 'https://unscreenable-cathrine-unprejudicially.ngrok-free.dev/api'
 
 export interface ActivityListParams {
     page?: number

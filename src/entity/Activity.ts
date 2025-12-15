@@ -12,7 +12,6 @@ export interface Activity {
     startTime: string
     expectedEndTime: string
     endTime: string
-    CoverPath: string
     CoverImage: string
     maxParticipants: number
     Attachment: string[]
@@ -21,4 +20,6 @@ export interface Activity {
     isFull: boolean
     reviewReason?: string
     duration: number
+    rejectedReason?: string
+    imported?: boolean
 }

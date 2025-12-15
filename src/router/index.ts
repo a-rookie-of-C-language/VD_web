@@ -28,6 +28,11 @@ const routes: Array<RouteRecordRaw> = [
                 component: () => import('../pages/AddActivity.vue')
             },
             {
+                path: 'import-activity',
+                name: 'ImportActivity',
+                component: () => import('../pages/ImportActivity.vue')
+            },
+            {
                 path: 'my-projects',
                 name: 'MyProjects',
                 component: () => import('../pages/MyProjects.vue')
@@ -41,6 +46,11 @@ const routes: Array<RouteRecordRaw> = [
                 path: 'admin-review',
                 name: 'AdminReview',
                 component: () => import('../pages/AdminReview.vue')
+            },
+            {
+                path: 'system-monitor',
+                name: 'SystemMonitor',
+                component: () => import('../pages/SystemMonitor.vue')
             },
             {
                 path: 'activity/:id',

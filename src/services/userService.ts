@@ -1,6 +1,7 @@
 import axios from 'axios'
 import type { LoginResponse, User } from '@/entity/User'
 
+
 const API_BASE_URL = 'http://localhost:8080'
 
 export interface ApiResponse<T> {
@@ -34,9 +35,7 @@ export const userService = {
         }
     },
 
-    /**
-     * Get user info from token
-     */
+
     async getUserInfo(token?: string): Promise<User> {
         const authToken = token || localStorage.getItem('token')
 
@@ -74,10 +73,6 @@ export const userService = {
     },
 
 
-
-    /**
-     * Get cached user info from localStorage
-     */
     getCachedUserInfo(): User | null {
         const userInfoStr = localStorage.getItem('userInfo')
         if (userInfoStr) {
@@ -96,5 +91,37 @@ export const userService = {
     logout(): void {
         localStorage.removeItem('token')
         localStorage.removeItem('userInfo')
+    },
+
+    async verifyToken(): Promise<string> {
+        const token = localStorage.getItem('token')
+        if (!token) return "No token"
+
+        try {
+            const response = await axios
+                .get<ApiResponse<any>>(`${API_BASE_URL}/user/verifyToken`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                })
+            if (response.data.code !== 200) {
+                return response.data.message
+            }
+            return "Pass"
+        } catch (e: any) {
+            return e.message || "Verification failed"
+        }
+    },
+
+    async getAllUsers(): Promise<User[]> {
+        const token = localStorage.getItem('token')
+        const response = await axios.get<ApiResponse<User[]>>(
+            `${API_BASE_URL}/user/listAll`,
+            {
+                headers: { Authorization: `Bearer ${String(token || '')}` }
+            }
+        )
+        if (response.data.code === 200) {
+            return response.data.data
+        }
+        return []
     }
 }

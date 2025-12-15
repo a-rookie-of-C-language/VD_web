@@ -160,4 +160,40 @@ async function handleLogin() {
   height: 41px;
   border-radius: 2px;
 }
+
+@media (max-width: 768px) {
+  .login-container {
+    background-image: url('../image/login-bg.png'); /* Keep or change if needed */
+    align-items: flex-start; /* Allow scroll if height exceeds viewport */
+    padding: 20px;
+  }
+
+  .login-content {
+    height: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .logo-container {
+    position: static;
+    margin-bottom: 30px;
+    margin-top: 20px;
+    text-align: center;
+  }
+
+  .logo {
+    width: 80px;
+    height: auto;
+  }
+
+  .login-card {
+    position: static;
+    transform: none;
+    width: 100%;
+    max-width: 380px;
+    margin: 0 auto;
+  }
+}
 </style>

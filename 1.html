@@ -1,0 +1,531 @@
+```html
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>志愿活动管理App项目文档</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html-docx-js/0.3.1/html-docx.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1698CE',
+                        secondary: '#4CAF50',
+                        neutral: '#F5F5F5',
+                        dark: '#333333',
+                        light: '#FFFFFF',
+                        gray: '#757575',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .card-shadow {
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans text-dark">
+    <!-- 顶部导航 -->
+    <header class="bg-white shadow-md sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-primary">志愿活动管理App</h1>
+            <button id="exportBtn" class="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg transition-all duration-300 flex items-center">
+                <i class="fa fa-file-word-o mr-2"></i>导出Word文档
+            </button>
+        </div>
+    </header>
+
+    <!-- 主要内容 -->
+    <main id="documentContent" class="container mx-auto px-4 py-8">
+        <!-- 项目概述 -->
+        <section class="mb-12">
+            <h2 class="text-3xl font-bold mb-6 pb-2 border-b-2 border-primary">项目概述</h2>
+            <p class="text-lg mb-4">
+                本项目是一款面向HarmonyOS的志愿活动管理应用，提供活动浏览、报名、统计、发布与审核等功能。
+                采用ArkUI ETS组件化开发，基于AppStorage维护登录态与用户信息，实现角色驱动的权限控制。
+            </p>
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h3 class="text-xl font-semibold mb-3">技术栈</h3>
+                <ul class="list-disc pl-6 space-y-2">
+                    <li>UI：ArkUI ETS（@Entry、@Component、Tabs、List等组件）</li>
+                    <li>能力：@kit.AbilityKit、@kit.ArkUI，入口能力加载首页</li>
+                    <li>路由：@ohos.router进行页面跳转与参数传递</li>
+                    <li>网络：@ohos.net.http，统一封装HttpUtil进行GET/POST/PUT/DELETE</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- 架构介绍 -->
+        <section class="mb-12">
+            <h2 class="text-3xl font-bold mb-6 pb-2 border-b-2 border-primary">应用架构</h2>
+            <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+                <h3 class="text-xl font-semibold mb-3">整体架构</h3>
+                <p class="mb-4">应用采用前后端分离架构，前端基于HarmonyOS的ArkUI ETS进行开发，后端提供RESTful API接口。</p>
+                <div class="flex justify-center mb-4">
+                    <!-- 预留架构图位置 -->
+                    <div class="border-2 border-dashed border-gray-300 w-full max-w-3xl h-64 flex items-center justify-center">
+                        <p class="text-gray-500">架构图占位区域</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h3 class="text-xl font-semibold mb-3">目录结构</h3>
+                <pre class="bg-gray-100 p-4 rounded overflow-x-auto text-sm">
+entry/src/main/ets
+├── entryability/EntryAbility.ets    # 入口能力加载首页
+├── pages/                           # 业务页面
+│   ├── LoginPage.ets                # 登录页
+│   ├── Index.ets                    # 首页
+│   ├── AllActivities.ets            # 活动列表页
+│   ├── Detail.ets                   # 活动详情页
+│   ├── MyStats.ets                  # 个人统计页
+│   ├── AddActivity.ets              # 发布活动页
+│   └── AdminReview.ets              # 活动审核页
+├── models/                          # 实体、枚举、DTO与通用返回结构
+└── utils/                           # 工具类，包括HttpUtil.ets
+                </pre>
+            </div>
+        </section>
+
+        <!-- 页面详情 -->
+        <section class="mb-12">
+            <h2 class="text-3xl font-bold mb-6 pb-2 border-b-2 border-primary">页面详情</h2>
+            
+            <!-- 登录页 -->
+            <div class="mb-10 bg-white p-6 rounded-lg shadow-md">
+                <h3 class="text-2xl font-semibold mb-4">1. 登录页 (LoginPage)</h3>
+                <div class="flex flex-col md:flex-row gap-6">
+                    <div class="md:w-1/2">
+                        <!-- 预留登录页截图位置 -->
+                        <div class="border-2 border-dashed border-gray-300 w-full h-80 flex items-center justify-center">
+                            <p class="text-gray-500">登录页截图占位区域</p>
+                        </div>
+                    </div>
+                    <div class="md:w-1/2">
+                        <h4 class="text-xl font-medium mb-3">页面内容</h4>
+                        <ul class="list-disc pl-5 mb-4 space-y-1">
+                            <li>学号输入框</li>
+                            <li>密码输入框</li>
+                            <li>登录按钮</li>
+                            <li>基本输入校验提示</li>
+                        </ul>
+                        
+                        <h4 class="text-xl font-medium mb-3">解决的问题</h4>
+                        <p class="mb-4">
+                            实现用户身份验证功能，通过调用`/user/login`接口验证用户身份，
+                            成功后将token与用户信息写入AppStorage并跳转至首页，确保系统安全性。
+                        </p>
+                        
+                        <h4 class="text-xl font-medium mb-3">设计想法</h4>
+                        <p>
+                            采用简洁的设计风格，减少用户登录阻力，同时提供明确的输入提示和错误反馈，
+                            确保用户能够顺利完成登录流程。
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 首页 -->
+            <div class="mb-10 bg-white p-6 rounded-lg shadow-md">
+                <h3 class="text-2xl font-semibold mb-4">2. 首页 (Index)</h3>
+                <div class="flex flex-col md:flex-row gap-6">
+                    <div class="md:w-1/2">
+                        <!-- 预留首页截图位置 -->
+                        <div class="border-2 border-dashed border-gray-300 w-full h-80 flex items-center justify-center">
+                            <p class="text-gray-500">首页截图占位区域</p>
+                        </div>
+                    </div>
+                    <div class="md:w-1/2">
+                        <h4 class="text-xl font-medium mb-3">页面内容</h4>
+                        <ul class="list-disc pl-5 mb-4 space-y-1">
+                            <li>Tabs切换组件</li>
+                            <li>活动列表标签页</li>
+                            <li>个人统计标签页</li>
+                            <li>管理员面板（按角色显示）</li>
+                        </ul>
+                        
+                        <h4 class="text-xl font-medium mb-3">解决的问题</h4>
+                        <p class="mb-4">
+                            作为应用入口，根据用户角色展示不同功能入口，实现权限控制，
+                            同时提供便捷的导航功能，使用户能够快速访问所需功能。
+                        </p>
+                        
+                        <h4 class="text-xl font-medium mb-3">设计想法</h4>
+                        <p>
+                            采用标签页设计，将不同功能模块清晰分离，同时根据用户角色动态展示可用功能，
+                            既保证了界面简洁性，又实现了灵活的权限控制。
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 活动列表页 -->
+            <div class="mb-10 bg-white p-6 rounded-lg shadow-md">
+                <h3 class="text-2xl font-semibold mb-4">3. 活动列表页 (AllActivities)</h3>
+                <div class="flex flex-col md:flex-row gap-6">
+                    <div class="md:w-1/2">
+                        <!-- 预留活动列表页截图位置 -->
+                        <div class="border-2 border-dashed border-gray-300 w-full h-80 flex items-center justify-center">
+                            <p class="text-gray-500">活动列表页截图占位区域</p>
+                        </div>
+                    </div>
+                    <div class="md:w-1/2">
+                        <h4 class="text-xl font-medium mb-3">页面内容</h4>
+                        <ul class="list-disc pl-5 mb-4 space-y-1">
+                            <li>活动卡片列表</li>
+                            <li>活动类型、状态、人数、封面展示</li>
+                            <li>分页加载功能</li>
+                        </ul>
+                        
+                        <h4 class="text-xl font-medium mb-3">解决的问题</h4>
+                        <p class="mb-4">
+                            拉取`/api/activities`分页数据，以卡片形式展示活动信息，
+                            使用户能够快速浏览和筛选感兴趣的志愿活动。
+                        </p>
+                        
+                        <h4 class="text-xl font-medium mb-3">设计想法</h4>
+                        <p>
+                            采用卡片式设计，每个卡片包含活动关键信息，通过色彩编码区分活动状态，
+                            点击卡片可进入详情页，提升用户浏览体验和信息获取效率。
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 活动详情页 -->
+            <div class="mb-10 bg-white p-6 rounded-lg shadow-md">
+                <h3 class="text-2xl font-semibold mb-4">4. 活动详情页 (Detail)</h3>
+                <div class="flex flex-col md:flex-row gap-6">
+                    <div class="md:w-1/2">
+                        <!-- 预留活动详情页截图位置 -->
+                        <div class="border-2 border-dashed border-gray-300 w-full h-80 flex items-center justify-center">
+                            <p class="text-gray-500">活动详情页截图占位区域</p>
+                        </div>
+                    </div>
+                    <div class="md:w-1/2">
+                        <h4 class="text-xl font-medium mb-3">页面内容</h4>
+                        <ul class="list-disc pl-5 mb-4 space-y-1">
+                            <li>活动封面图</li>
+                            <li>活动名称、类型、状态</li>
+                            <li>活动时间、地点、详情描述</li>
+                            <li>报名状态与报名按钮</li>
+                        </ul>
+                        
+                        <h4 class="text-xl font-medium mb-3">解决的问题</h4>
+                        <p class="mb-4">
+                            展示活动详细信息，提供报名功能，通过`POST /api/activities/{id}/enroll`接口
+                            实现报名，并进行报名时间校验，确保用户在规定时间内报名。
+                        </p>
+                        
+                        <h4 class="text-xl font-medium mb-3">设计想法</h4>
+                        <p>
+                            采用信息分层展示，突出关键信息，报名按钮设计醒目，同时提供明确的报名状态提示，
+                            确保用户能够清晰了解活动详情并顺利完成报名。
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 个人统计页 -->
+            <div class="mb-10 bg-white p-6 rounded-lg shadow-md">
+                <h3 class="text-2xl font-semibold mb-4">5. 个人统计页 (MyStats)</h3>
+                <div class="flex flex-col md:flex-row gap-6">
+                    <div class="md:w-1/2">
+                        <!-- 预留个人统计页截图位置 -->
+                        <div class="border-2 border-dashed border-gray-300 w-full h-80 flex items-center justify-center">
+                            <p class="text-gray-500">个人统计页截图占位区域</p>
+                        </div>
+                    </div>
+                    <div class="md:w-1/2">
+                        <h4 class="text-xl font-medium mb-3">页面内容</h4>
+                        <ul class="list-disc pl-5 mb-4 space-y-1">
+                            <li>总服务时长统计</li>
+                            <li>参与活动次数统计</li>
+                            <li>近期参与活动列表</li>
+                        </ul>
+                        
+                        <h4 class="text-xl font-medium mb-3">解决的问题</h4>
+                        <p class="mb-4">
+                            通过拉取`/api/activities/MyStatus`接口数据，展示用户参与志愿活动的统计信息，
+                            帮助用户了解自己的志愿活动参与情况。
+                        </p>
+                        
+                        <h4 class="text-xl font-medium mb-3">设计想法</h4>
+                        <p>
+                            采用数据可视化设计，通过简洁明了的方式展示统计信息，让用户能够直观了解自己的
+                            志愿活动参与情况，增强用户成就感和参与积极性。
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 发布活动页 -->
+            <div class="mb-10 bg-white p-6 rounded-lg shadow-md">
+                <h3 class="text-2xl font-semibold mb-4">6. 发布活动页 (AddActivity)</h3>
+                <div class="flex flex-col md:flex-row gap-6">
+                    <div class="md:w-1/2">
+                        <!-- 预留发布活动页截图位置 -->
+                        <div class="border-2 border-dashed border-gray-300 w-full h-80 flex items-center justify-center">
+                            <p class="text-gray-500">发布活动页截图占位区域</p>
+                        </div>
+                    </div>
+                    <div class="md:w-1/2">
+                        <h4 class="text-xl font-medium mb-3">页面内容</h4>
+                        <ul class="list-disc pl-5 mb-4 space-y-1">
+                            <li>活动名称、类型、描述输入</li>
+                            <li>报名时间、活动时间选择</li>
+                            <li>参与人数上限、活动时长设置</li>
+                            <li>发布按钮</li>
+                        </ul>
+                        
+                        <h4 class="text-xl font-medium mb-3">解决的问题</h4>
+                        <p class="mb-4">
+                            为functionary和superAdmin角色提供活动发布功能，通过`POST /api/activities`接口
+                            提交活动信息，实现志愿活动的创建。
+                        </p>
+                        
+                        <h4 class="text-xl font-medium mb-3">设计想法</h4>
+                        <p>
+                            采用表单式设计，分类展示各项信息输入框，提供明确的输入提示和校验，
+                            确保活动信息的完整性和准确性，同时限制只有特定角色可以访问。
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 活动审核页 -->
+            <div class="mb-10 bg-white p-6 rounded-lg shadow-md">
+                <h3 class="text-2xl font-semibold mb-4">7. 活动审核页 (AdminReview)</h3>
+                <div class="flex flex-col md:flex-row gap-6">
+                    <div class="md:w-1/2">
+                        <!-- 预留活动审核页截图位置 -->
+                        <div class="border-2 border-dashed border-gray-300 w-full h-80 flex items-center justify-center">
+                            <p class="text-gray-500">活动审核页截图占位区域</p>
+                        </div>
+                    </div>
+                    <div class="md:w-1/2">
+                        <h4 class="text-xl font-medium mb-3">页面内容</h4>
+                        <ul class="list-disc pl-5 mb-4 space-y-1">
+                            <li>待审核活动列表</li>
+                            <li>活动基本信息展示</li>
+                            <li>通过/拒绝审核按钮</li>
+                        </ul>
+                        
+                        <h4 class="text-xl font-medium mb-3">解决的问题</h4>
+                        <p class="mb-4">
+                            拉取UnderReview状态的活动列表，为admin和superAdmin角色提供活动审核功能，
+                            通过`PUT /api/activities/{id}/review`接口实现审核操作。
+                        </p>
+                        
+                        <h4 class="text-xl font-medium mb-3">设计想法</h4>
+                        <p>
+                            简洁的列表式设计，突出待审核活动的关键信息，提供明确的审核操作按钮，
+                            使管理员能够高效完成审核工作，同时限制只有特定角色可以访问。
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 人员分工与问题 -->
+        <section class="mb-12">
+            <h2 class="text-3xl font-bold mb-6 pb-2 border-b-2 border-primary">人员分工与遇到的问题</h2>
+            
+            <!-- A的工作内容 -->
+            <div class="mb-8 bg-white p-6 rounded-lg shadow-md">
+                <h3 class="text-2xl font-semibold mb-4 text-primary">A完成的工作内容</h3>
+                <div class="space-y-4">
+                    <div>
+                        <h4 class="text-xl font-medium mb-2">1. 登录页 (LoginPage)</h4>
+                        <ul class="list-disc pl-5 space-y-1">
+                            <li>实现登录页面UI布局与交互逻辑</li>
+                            <li>完成用户输入校验功能</li>
+                            <li>实现登录接口调用与响应处理</li>
+                            <li>完成登录状态管理与页面跳转</li>
+                        </ul>
+                    </div>
+                    
+                    <div>
+                        <h4 class="text-xl font-medium mb-2">2. 活动详情页 (Detail)</h4>
+                        <ul class="list-disc pl-5 space-y-1">
+                            <li>实现活动详情页面UI布局</li>
+                            <li>完成活动详情数据获取与展示</li>
+                            <li>实现活动报名功能与时间校验</li>
+                            <li>处理报名成功后的页面刷新逻辑</li>
+                        </ul>
+                    </div>
+                    
+                    <div>
+                        <h4 class="text-xl font-medium mb-2">3. 个人统计页 (MyStats)</h4>
+                        <ul class="list-disc pl-5 space-y-1">
+                            <li>实现个人统计页面UI布局</li>
+                            <li>完成个人统计数据获取与展示</li>
+                            <li>实现近期活动列表展示功能</li>
+                            <li>优化数据展示方式，提升用户体验</li>
+                        </ul>
+                    </div>
+                    
+                    <div>
+                        <h4 class="text-xl font-medium mb-2">遇到的问题与解决方案</h4>
+                        <ul class="list-disc pl-5 space-y-2">
+                            <li>
+                                <span class="font-medium">问题1：</span>登录状态在页面刷新后丢失
+                                <br>
+                                <span class="italic text-gray-600">解决方案：</span>使用AppStorage存储登录态，确保状态持久化
+                            </li>
+                            <li>
+                                <span class="font-medium">问题2：</span>活动详情页数据加载缓慢
+                                <br>
+                                <span class="italic text-gray-600">解决方案：</span>实现加载状态显示，优化数据请求逻辑
+                            </li>
+                            <li>
+                                <span class="font-medium">问题3：</span>时间格式处理不一致
+                                <br>
+                                <span class="italic text-gray-600">解决方案：</span>封装时间处理工具函数，统一时间格式转换
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- B的工作内容 -->
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h3 class="text-2xl font-semibold mb-4 text-primary">B完成的工作内容</h3>
+                <div class="space-y-4">
+                    <div>
+                        <h4 class="text-xl font-medium mb-2">1. 首页 (Index)</h4>
+                        <ul class="list-disc pl-5 space-y-1">
+                            <li>实现首页UI布局与Tabs组件</li>
+                            <li>完成基于角色的权限控制逻辑</li>
+                            <li>实现不同角色的页面元素展示控制</li>
+                            <li>优化首页加载性能与用户体验</li>
+                        </ul>
+                    </div>
+                    
+                    <div>
+                        <h4 class="text-xl font-medium mb-2">2. 活动列表页 (AllActivities)</h4>
+                        <ul class="list-disc pl-5 space-y-1">
+                            <li>实现活动列表页面UI布局</li>
+                            <li>完成活动数据分页获取与展示</li>
+                            <li>实现活动卡片设计与交互效果</li>
+                            <li>处理活动列表项点击跳转逻辑</li>
+                        </ul>
+                    </div>
+                    
+                    <div>
+                        <h4 class="text-xl font-medium mb-2">3. 发布活动页 (AddActivity)</h4>
+                        <ul class="list-disc pl-5 space-y-1">
+                            <li>实现发布活动页面UI布局与表单设计</li>
+                            <li>完成表单数据收集与校验功能</li>
+                            <li>实现活动发布接口调用与响应处理</li>
+                            <li>添加角色权限校验，限制访问权限</li>
+                        </ul>
+                    </div>
+                    
+                    <div>
+                        <h4 class="text-xl font-medium mb-2">4. 活动审核页 (AdminReview)</h4>
+                        <ul class="list-disc pl-5 space-y-1">
+                            <li>实现活动审核页面UI布局</li>
+                            <li>完成待审核活动数据获取与展示</li>
+                            <li>实现活动审核操作与接口调用</li>
+                            <li>处理审核后的页面更新逻辑</li>
+                        </ul>
+                    </div>
+                    
+                    <div>
+                        <h4 class="text-xl font-medium mb-2">遇到的问题与解决方案</h4>
+                        <ul class="list-disc pl-5 space-y-2">
+                            <li>
+                                <span class="font-medium">问题1：</span>角色权限控制逻辑复杂
+                                <br>
+                                <span class="italic text-gray-600">解决方案：</span>封装权限判断工具函数，简化权限控制逻辑
+                            </li>
+                            <li>
+                                <span class="font-medium">问题2：</span>活动列表数据量大时加载缓慢
+                                <br>
+                                <span class="italic text-gray-600">解决方案：</span>实现分页加载与数据缓存，优化列表渲染
+                            </li>
+                            <li>
+                                <span class="font-medium">问题3：</span>表单提交数据格式错误
+                                <br>
+                                <span class="italic text-gray-600">解决方案：</span>统一数据格式转换，增加表单校验逻辑
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="bg-dark text-white py-6">
+        <div class="container mx-auto px-4 text-center">
+            <p>志愿活动管理App项目文档</p>
+            <p class="mt-2 text-sm text-gray-400">© 2023 志愿活动管理App开发团队</p>
+        </div>
+    </footer>
+
+    <script>
+        // 导出Word文档功能
+        document.getElementById('exportBtn').addEventListener('click', function() {
+            // 获取要导出的内容
+            const content = document.getElementById('documentContent').innerHTML;
+            
+            // 创建一个完整的HTML文档，包含样式
+            const html = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <title>志愿活动管理App项目文档</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; line-height: 1.6; }
+                        h1, h2, h3, h4 { color: #1698CE; margin-top: 1.5em; margin-bottom: 0.5em; }
+                        h2 { border-bottom: 2px solid #1698CE; padding-bottom: 0.5em; }
+                        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+                        ul { margin-left: 20px; margin-bottom: 1em; }
+                        .bg-white { background-color: white; padding: 20px; border-radius: 5px; margin-bottom: 20px; }
+                        .flex { display: flex; gap: 20px; margin-bottom: 20px; }
+                        .md\\:w-1\\/2 { width: 50%; }
+                        .border-dashed { border: 2px dashed #ccc; padding: 20px; text-align: center; color: #666; }
+                        pre { background-color: #f5f5f5; padding: 15px; border-radius: 5px; overflow-x: auto; }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <h1 style="text-align: center;">志愿活动管理App项目文档</h1>
+                        ${content}
+                    </div>
+                </body>
+                </html>
+            `;
+            
+            // 转换为Blob对象
+            const blob = htmlDocx.asBlob(html);
+            
+            // 保存为Word文档
+            saveAs(blob, '志愿活动管理App项目文档.docx');
+        });
+    </script>
+</body>
+</html>
+```

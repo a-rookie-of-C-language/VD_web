@@ -4,7 +4,7 @@ import Sidebar from '../components/Sidebar.vue'
 
 <template>
   <el-container class="main-layout">
-    <el-aside width="260px">
+    <el-aside class="app-sidebar">
       <Sidebar />
     </el-aside>
     <el-main class="content-area">
@@ -21,5 +21,30 @@ import Sidebar from '../components/Sidebar.vue'
 .content-area {
   background-color: #f9fafb;
   overflow-y: auto;
+}
+
+.app-sidebar {
+  width: 260px;
+}
+
+@media (max-width: 768px) {
+  .main-layout {
+    flex-direction: column;
+  }
+
+  .main-layout :deep(.el-aside) {
+    width: 100% !important;
+    height: auto !important;
+    order: 2; /* Move to bottom */
+    flex-shrink: 0;
+    z-index: 1000;
+  }
+
+  .content-area {
+    order: 1;
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: 60px; /* Prevent content from being hidden behind nav if fixed, though flex shouldn't hide it */
+  }
 }
 </style>

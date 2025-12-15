@@ -31,6 +31,7 @@
   "EnrollmentStartTime": "OffsetDateTime",
   "EnrollmentEndTime": "OffsetDateTime",
   "startTime": "OffsetDateTime",
+  "expectedEndTime": "OffsetDateTime",
   "endTime": "OffsetDateTime",
   "CoverPath": "string",
   "CoverImage": "data:image/png;base64,......",
@@ -98,6 +99,9 @@ GET /api/activities?page=1&pageSize=10&type=COMMUNITY_SERVICE&status=EnrollmentS
 - 表单字段（按 `ActivityDTO` 模型绑定）：
   - 业务字段：`functionary`、`name`、`type`、`description`、`enrollmentStartTime`、`enrollmentEndTime`、`startTime`、`endTime`、`maxParticipants`、`attachment`、`participants`、`duration` 等
   - 文件字段：`coverFile`
+- 行为：
+  - 活动创建成功后，负责人（`functionary`）会自动被添加为参与者
+  - 如果 `participants` 列表中包含负责人学号，不会重复添加
 - 响应：创建后的 `Activity`（状态默认为 `UnderReview`）
 - 示例：
 ```bash
@@ -195,14 +199,24 @@ curl -H "Authorization: Bearer <JWT_TOKEN>" \
    "http://localhost:8080/api/activities/{id}/review?approve=false"
  ```
 
-### 报名活动
-- `POST /api/activities/{id}/enroll?studentNo=<学号>`
+-### 报名活动
+- `POST /api/activities/{id}/enroll`
+- 请求头：`Authorization: Bearer <JWT_TOKEN>`（必需）
 - 行为：
   - 若活动不存在：返回 `{"code":404, "message":"NOT_FOUND"}`
   - 若已报名：返回 `{"code":409, "message":"ALREADY_ENROLLED"}`
   - 若名额已满：返回 `{"code":409, "message":"CAPACITY_FULL"}`
   - 成功：返回 `{"code":200, "message":"success"}`
-  
+
+-### 取消报名
+- `POST /api/activities/{id}/unenroll`
+- 请求头：`Authorization: Bearer <JWT_TOKEN>`（必需）
+- 行为：仅在报名结束前允许取消报名（`now < EnrollmentEndTime`）
+  - 若活动不存在：返回 `{"code":404, "message":"NOT_FOUND"}`
+  - 若当前用户是活动负责人：返回 `{"code":403, "message":"FUNCTIONARY_CANNOT_UNENROLL"}`（负责人不能退出自己负责的活动）
+  - 若已过报名结束时间：返回 `{"code":400, "message":"ENROLLMENT_ENDED"}`
+  - 若未报名：返回 `{"code":409, "message":"NOT_ENROLLED"}`
+  - 成功：返回 `{"code":200, "message":"success"}`
 ## 封面上传与路径
 - 封面图片通过“创建活动/更新活动”接口的 `coverFile` 字段上传。
 - 约束：
@@ -257,6 +271,104 @@ curl -H "Authorization: Bearer <JWT_TOKEN>" \
 
 ## 监控（Monitoring）
 - 权限：仅超级管理员可访问；请求头：`Authorization: Bearer <JWT_TOKEN>`（必需）
+
+### 监控大屏数据
+- `GET /api/monitoring/dashboard`
+- 查询参数：
+  - `timeRange`：时间范围（可选，默认 `monthly`）
+    - `daily`：当天数据
+    - `weekly`：最近7天数据
+    - `monthly`：最近30天数据
+    - `yearly`：最近365天数据
+- 响应：
+```json
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "overview": {
+      "totalUsers": 1250,              // 总用户数
+      "totalActivities": 85,           // 总活动数
+      "completedActivities": 68,       // 已完成活动数
+      "totalDuration": 3450.5,         // 总志愿时长
+      "totalParticipants": 3200,       // 总参与人次
+      "averageDuration": 2.8,          // 平均志愿时长
+      "newActivities": 12,             // 时间范围内新增活动数
+      "activeUsers": 150               // 时间范围内活跃用户数
+    },
+    "classificationStats": {
+      "byGrade": [
+        {
+          "name": "2023级",
+          "userCount": 300,              // 用户数
+          "activityCount": 45,           // 参与活动数
+          "totalHours": 850.5,           // 总时长
+          "averageHours": 2.8            // 平均时长
+        },
+        {
+          "name": "2022级",
+          "userCount": 280,
+          "activityCount": 42,
+          "totalHours": 780.0,
+          "averageHours": 2.8
+        }
+      ],
+      "byCollege": [
+        {
+          "name": "计算机学院",
+          "userCount": 450,
+          "activityCount": 68,
+          "totalHours": 1250.5,
+          "averageHours": 2.8
+        },
+        {
+          "name": "外国语学院",
+          "userCount": 380,
+          "activityCount": 55,
+          "totalHours": 980.0,
+          "averageHours": 2.6
+        }
+      ],
+      "byClazz": [
+        {
+          "name": "计算机2301班",
+          "userCount": 45,
+          "activityCount": 12,
+          "totalHours": 125.5,
+          "averageHours": 2.8
+        },
+        {
+          "name": "软件2301班",
+          "userCount": 42,
+          "activityCount": 11,
+          "totalHours": 118.0,
+          "averageHours": 2.8
+        }
+      ]
+    },
+    "activityTypes": [
+      { "name": "COMMUNITY_SERVICE", "value": 24 },
+      { "name": "CULTURE_SERVICE", "value": 15 },
+      ...
+    ],
+    "topUsers": [
+      { "rank": 1, "studentNo": "20230001", "name": "张三", "hours": 120.5 },
+      { "rank": 2, "studentNo": "20230002", "name": "李四", "hours": 110.0 },
+      ...
+    ],
+    "growthRanking": [
+      { "rank": 1, "studentNo": "20230003", "name": "王五", "hours": 50.0 },
+      ...
+    ]
+  }
+}
+```
+- 示例：
+```bash
+curl -H "Authorization: Bearer <JWT_TOKEN>" \
+  "http://localhost:8080/api/monitoring/dashboard?timeRange=monthly"
+```
+
 ### 总览监控
 - `GET /api/monitoring/overview`
 - 行为：返回系统与业务概览指标，并包含告警统计与最近告警
@@ -323,3 +435,211 @@ curl -H "Authorization: Bearer <JWT_TOKEN>" \
   "timestamp": 1732612345678
 }
 ```
+
+## 活动导入（Activity Import）
+
+### 导入已完成的活动
+- `POST /api/activities/import`
+- Content-Type: `multipart/form-data`
+- 请求头：`Authorization: Bearer <JWT_TOKEN>`（必需）
+- 表单字段：
+  - `name`（必需）：活动名称
+  - `type`（必需）：活动类型（ActivityType枚举值）
+  - `description`：活动描述
+  - `duration`（必需）：活动时长（小时）
+  - `endTime`（必需）：活动结束时间（ISO-8601 OffsetDateTime）
+  - `functionary`（必需）：活动负责人学号
+  - `participants[]`：参与者学号数组（可选）
+  - `file`：Excel文件，包含参与者学号列表（第一列为学号，第一行为表头将被跳过）
+  - `coverFile`：封面图片文件（可选）
+  - `attachment[]`：附件路径数组（可选）
+- 行为：
+  - **管理员（admin/superAdmin）**：直接创建已完成的活动（status=ActivityEnded, imported=true），立即生效
+  - **负责人（functionary）**：创建待审核的活动记录，需要管理员审核后才会生效
+  - 参与者来源：`participants[]` 数组 + Excel文件解析结果（合并去重）
+  - 所有参与者必须在系统中存在，否则返回错误
+  - 导入的活动所有时间字段（报名开始/结束、活动开始/结束）都设置为endTime
+- 响应：
+```json
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "id": "活动ID",
+    "status": "APPROVED" // 管理员导入
+    // 或
+    "status": "PENDING_REVIEW" // 负责人导入
+  }
+}
+```
+- 示例：
+```bash
+# 管理员导入（直接生效）
+curl -X POST -H "Authorization: Bearer <ADMIN_TOKEN>" \
+  -F "name=社区志愿服务" \
+  -F "type=COMMUNITY_SERVICE" \
+  -F "description=街道清洁活动" \
+  -F "duration=3.5" \
+  -F "endTime=2025-12-10T16:00:00+08:00" \
+  -F "functionary=20230001" \
+  -F "participants[]=20230002" \
+  -F "participants[]=20230003" \
+  -F "file=@/path/to/participants.xlsx" \
+  -F "coverFile=@/path/to/cover.jpg" \
+  http://localhost:8080/api/activities/import
+
+# 负责人导入（需要审核）
+curl -X POST -H "Authorization: Bearer <FUNCTIONARY_TOKEN>" \
+  -F "name=社区志愿服务" \
+  -F "type=COMMUNITY_SERVICE" \
+  -F "duration=3.5" \
+  -F "endTime=2025-12-10T16:00:00+08:00" \
+  -F "functionary=20230001" \
+  -F "file=@/path/to/participants.xlsx" \
+  http://localhost:8080/api/activities/import
+```
+
+## 待审核活动（Pending Activities）
+
+### 列出待审核活动
+- `GET /api/pending-activities`
+- 请求头：`Authorization: Bearer <JWT_TOKEN>`（必需）
+- 查询参数：
+  - `page`（默认 `1`）、`pageSize`（默认 `10`）
+  - `type`（ActivityType 枚举名）
+  - `functionary`：活动负责人学号
+  - `name`：活动名称（支持模糊匹配）
+  - `submittedBy`：提交者学号
+- 权限：
+  - **管理员（admin/superAdmin）**：查看所有待审核活动
+  - **负责人（functionary）**：只能查看自己提交的待审核活动
+- 响应：
+```json
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "items": [
+      {
+        "id": "pending-activity-id",
+        "functionary": "20230001",
+        "name": "社区志愿服务",
+        "type": "COMMUNITY_SERVICE",
+        "description": "街道清洁活动",
+        "duration": 3.5,
+        "endTime": "2025-12-10T16:00:00+08:00",
+        "coverPath": "/covers/xxx.jpg",
+        "coverImage": "data:image/jpeg;base64,...",
+        "createdAt": "2025-12-15T10:30:00+08:00",
+        "submittedBy": "20230001",
+        "attachment": ["/files/a.pdf"],
+        "participants": ["20230002", "20230003"]
+      }
+    ],
+    "total": 5,
+    "page": 1,
+    "pageSize": 10
+  }
+}
+```
+
+### 获取待审核活动详情
+- `GET /api/pending-activities/{id}`
+- 请求头：`Authorization: Bearer <JWT_TOKEN>`（必需）
+- 响应：待审核活动详情（同上述结构中的单个item）
+
+### 审核通过待审核活动
+- `POST /api/pending-activities/{id}/approve`
+- 请求头：`Authorization: Bearer <JWT_TOKEN>`（必需；仅管理员）
+- 行为：将待审核活动转换为正式活动，状态设置为 ActivityEnded，imported=true
+- 响应：
+```json
+{
+  "code": 200,
+  "message": "success",
+  "data": {
+    "activityId": "已创建的正式活动ID"
+  }
+}
+```
+
+### 拒绝待审核活动
+- `POST /api/pending-activities/{id}/reject?reason=<拒绝理由>`
+- 请求头：`Authorization: Bearer <JWT_TOKEN>`（必需；仅管理员）
+- 查询参数：
+  - `reason`（可选）：拒绝理由
+- 行为：删除待审核活动及其相关数据（参与者、附件、封面图片）
+- 响应：
+```json
+{
+  "code": 200,
+  "message": "success"
+}
+```
+
+### 删除待审核活动
+- `DELETE /api/pending-activities/{id}`
+- 请求头：`Authorization: Bearer <JWT_TOKEN>`（必需）
+- 权限：提交者本人或管理员
+- 行为：删除待审核活动及其相关数据
+- 响应：
+```json
+{
+  "code": 200,
+  "message": "success"
+}
+```
+
+## 用户管理（Users）补充
+
+### 列出所有用户
+- `GET /user/listAll`
+- 行为：返回所有用户列表（用于导入活动时选择负责人和参与者）
+- 响应：
+```json
+{
+  "code": 200,
+  "message": "success",
+  "data": [
+    {
+      "studentNo": "20230001",
+      "username": "张三",
+      "role": "user",
+      "totalHours": 10.5
+    },
+    {
+      "studentNo": "20230002",
+      "username": "李四",
+      "role": "functionary",
+      "totalHours": 25.0
+    }
+  ]
+}
+```
+
+## Activity 数据结构更新
+
+在原有Activity结构基础上，新增以下字段：
+- `rejectedReason`（string, 可选）：活动被拒绝的理由（status=FailReview时有值）
+- `imported`（boolean）：是否为导入的活动（true表示导入的已完成活动）
+
+审核活动接口更新：
+- `POST /api/activities/{id}/review?approve=<true|false>&reason=<拒绝理由>`
+- 新增 `reason` 参数（可选）：当 `approve=false` 时可提供拒绝理由
+
+## Excel 文件格式说明
+
+导入活动时上传的Excel文件格式要求：
+- 文件格式：`.xlsx`（Excel 2007+）
+- 第一列：学号（student_no）
+- 第一行：表头（将被跳过）
+- 示例：
+
+| 学号 |
+|------|
+| 20230001 |
+| 20230002 |
+| 20230003 |
+
+系统会自动解析第一列的所有学号（跳过表头行），并与 `participants[]` 参数合并去重。
+

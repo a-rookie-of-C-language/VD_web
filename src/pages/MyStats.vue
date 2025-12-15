@@ -1,14 +1,17 @@
 <script setup lang="ts">
 import {ref, onMounted} from 'vue'
-import {ElMessage} from 'element-plus'
+import { useRouter } from 'vue-router'
+import {ElMessage, ElMessageBox} from 'element-plus'
 import {activityService} from '@/services/activityService'
 import type {Activity} from '@/entity/Activity'
 import {useUserStore} from '@/stores/useUserStore'
-import {Timer, Trophy, Calendar, ArrowRight} from '@element-plus/icons-vue'
+import {Timer, Trophy, Calendar, ArrowRight, User as UserIcon, SwitchButton} from '@element-plus/icons-vue'
 import {ActivityStatus} from '@/entity/ActivityStatus'
 import {ActivityType} from '@/entity/ActivityType'
+import { getActivityTypeLabel, getActivityStatusLabel } from '@/util/util'
 
 const userStore = useUserStore()
+const router = useRouter()
 const loading = ref(false)
 const activities = ref<Activity[]>([])
 const totalDuration = ref(0)
@@ -30,6 +33,21 @@ const fetchParticipated = async () => {
   }
 }
 
+const handleLogout = async () => {
+  try {
+    await ElMessageBox.confirm('确定要退出登录吗？', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+    userStore.clearUser()
+    ElMessage.success('已退出登录')
+    router.push('/login')
+  } catch (e) {
+    // cancelled
+  }
+}
+
 const getStatusType = (status: ActivityStatus) => {
   switch (status) {
     case ActivityStatus.EnrollmentStarted:
@@ -45,32 +63,9 @@ const getStatusType = (status: ActivityStatus) => {
   }
 }
 
-const getStatusText = (status: ActivityStatus): string => {
-  const statusMap: Record<ActivityStatus, string> = {
-    [ActivityStatus.EnrollmentNotStart]: '未开始报名',
-    [ActivityStatus.EnrollmentStarted]: '报名中',
-    [ActivityStatus.EnrollmentEnded]: '报名结束',
-    [ActivityStatus.ActivityStarted]: '活动进行中',
-    [ActivityStatus.ActivityEnded]: '活动已结束',
-    [ActivityStatus.UnderReview]: '审核中',
-    [ActivityStatus.FailReview]: '审核失败'
-  }
-  return statusMap[status] || String(status)
-}
+const getStatusText = getActivityStatusLabel
 
-const getTypeText = (type: ActivityType): string => {
-  const typeMap: Record<ActivityType, string> = {
-    [ActivityType.COMMUNITY_SERVICE]: '社区服务',
-    [ActivityType.CULTURE_SERVICE]: '文化服务',
-    [ActivityType.EMERGENCY_RESCUE]: '应急救援',
-    [ActivityType.ANIMAL_PROTECTION]: '动物保护',
-    [ActivityType.POVERTY_ASSISTANCE]: '扶贫助困',
-    [ActivityType.ELDERLY_DISABLED_ASSISTANCE]: '扶老助残',
-    [ActivityType.MEDICAL_ASSISTANCE]: '慰病助医',
-    [ActivityType.ORPHAN_EDUCATION_ASSISTANCE]: '救孤助学'
-  }
-  return typeMap[type] || type
-}
+const getTypeText = getActivityTypeLabel
 
 const formatTimeRange = (start: string, end: string) => {
   const startDate = new Date(start)
@@ -119,6 +114,22 @@ onMounted(() => {
       </div>
     </div>
 
+    <!-- User Info Card -->
+    <el-card class="user-info-card mb-4" shadow="hover" v-if="userStore.isLoggedIn">
+      <div class="user-info-content">
+        <div class="user-avatar">
+          <el-avatar :size="60" :icon="UserIcon" class="avatar-icon" />
+        </div>
+        <div class="user-details">
+          <div class="user-name">{{ userStore.username }}</div>
+          <div class="user-id">学号: {{ userStore.studentNo }}</div>
+        </div>
+        <div class="user-actions">
+           <el-button type="danger" plain round :icon="SwitchButton" @click="handleLogout" size="small">退出登录</el-button>
+        </div>
+      </div>
+    </el-card>
+
     <!-- Stats Cards -->
     <div class="stats-container">
       <el-row :gutter="24">
@@ -164,64 +175,93 @@ onMounted(() => {
         </div>
       </template>
 
-      <el-table
-          :data="activities"
-          v-loading="loading"
-          style="width: 100%"
-          :header-cell-style="{ background: '#f5f7fa', color: '#606266' }"
-          stripe
-      >
-        <el-table-column prop="name" label="活动名称" min-width="200">
-          <template #default="{ row }">
-            <span class="activity-name">{{ row.name }}</span>
-          </template>
-        </el-table-column>
+      <!-- Desktop Table -->
+      <div class="hidden-xs-only">
+        <el-table
+            :data="activities"
+            v-loading="loading"
+            style="width: 100%"
+            :header-cell-style="{ background: '#f5f7fa', color: '#606266' }"
+            stripe
+        >
+          <el-table-column prop="name" label="活动名称" min-width="200">
+            <template #default="{ row }">
+              <span class="activity-name">{{ row.name }}</span>
+            </template>
+          </el-table-column>
 
-        <el-table-column prop="type" label="类型" width="140">
-          <template #default="{ row }">
-            <el-tag effect="plain" round>{{ getTypeText(row.type) }}</el-tag>
-          </template>
-        </el-table-column>
+          <el-table-column prop="type" label="类型" width="140">
+            <template #default="{ row }">
+              <el-tag effect="plain" round>{{ getTypeText(row.type) }}</el-tag>
+            </template>
+          </el-table-column>
 
-        <el-table-column prop="duration" label="时长" width="120">
-          <template #default="{ row }">
-            <span class="duration-text">{{ row.duration }} 小时</span>
-          </template>
-        </el-table-column>
+          <el-table-column prop="duration" label="时长" width="120">
+            <template #default="{ row }">
+              <span class="duration-text">{{ row.duration }} 小时</span>
+            </template>
+          </el-table-column>
 
-        <el-table-column label="活动时间" min-width="320">
-          <template #default="{ row }">
-            <div class="time-cell">
-              <span>{{ formatTimeRange(row.startTime, row.expectedEndTime) }}</span>
+          <el-table-column label="活动时间" min-width="320">
+            <template #default="{ row }">
+              <div class="time-cell">
+                <span>{{ formatTimeRange(row.startTime, row.expectedEndTime) }}</span>
+              </div>
+            </template>
+          </el-table-column>
+
+          <el-table-column prop="status" label="状态" width="120">
+            <template #default="{ row }">
+              <el-tag :type="getStatusType(row.status)" effect="dark" size="small">
+                {{ getStatusText(row.status) }}
+              </el-tag>
+            </template>
+          </el-table-column>
+
+          <el-table-column fixed="right" label="操作" width="100">
+            <template #default="{ row }">
+              <el-button link type="primary" @click="$router.push(`/activity/${row.id}`)">
+                查看
+                <el-icon class="el-icon--right">
+                  <ArrowRight/>
+                </el-icon>
+              </el-button>
+            </template>
+          </el-table-column>
+
+          <template #empty>
+            <div class="empty-state">
+              <el-empty description="暂无参与记录，快去报名活动吧！"/>
             </div>
           </template>
-        </el-table-column>
+        </el-table>
+      </div>
 
-        <el-table-column prop="status" label="状态" width="120">
-          <template #default="{ row }">
-            <el-tag :type="getStatusType(row.status)" effect="dark" size="small">
-              {{ getStatusText(row.status) }}
-            </el-tag>
-          </template>
-        </el-table-column>
-
-        <el-table-column fixed="right" label="操作" width="100">
-          <template #default="{ row }">
-            <el-button link type="primary" @click="$router.push(`/activity/${row.id}`)">
-              查看
-              <el-icon class="el-icon--right">
-                <ArrowRight/>
-              </el-icon>
-            </el-button>
-          </template>
-        </el-table-column>
-
-        <template #empty>
-          <div class="empty-state">
-            <el-empty description="暂无参与记录，快去报名活动吧！"/>
+      <!-- Mobile List -->
+      <div class="visible-xs-only mobile-activity-list">
+          <div v-for="item in activities" :key="item.id" class="mobile-activity-item">
+              <div class="item-header">
+                  <span class="item-title">{{ item.name }}</span>
+                   <el-button link type="primary" size="small" @click="$router.push(`/activity/${item.id}`)">查看</el-button>
+              </div>
+              <div class="item-body">
+                  <div class="item-row">
+                      <el-tag size="small" effect="plain">{{ getTypeText(item.type) }}</el-tag>
+                      <el-tag :type="getStatusType(item.status)" size="small" class="ml-2" effect="dark">{{ getStatusText(item.status) }}</el-tag>
+                  </div>
+                  <div class="item-row highlight-text">
+                      <el-icon><Timer /></el-icon>
+                      <span class="ml-1">{{ item.duration }} 小时</span>
+                  </div>
+                  <div class="item-row time-text">
+                      {{ formatTimeRange(item.startTime, item.expectedEndTime) }}
+                  </div>
+              </div>
           </div>
-        </template>
-      </el-table>
+          <div v-if="activities.length === 0" class="empty-mobile-text">
+             <el-empty description="暂无参与记录" />
+          </div>
+      </div>
     </el-card>
   </div>
 </template>
@@ -350,6 +390,43 @@ onMounted(() => {
   margin-top: 4px;
 }
 
+.mb-4 {
+  margin-bottom: 20px;
+}
+
+.user-info-card {
+  border-radius: 12px;
+  border: 1px solid #ebeef5;
+}
+
+.user-info-content {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.user-avatar .avatar-icon {
+  background: #ecf5ff;
+  color: #409eff;
+  font-size: 24px;
+}
+
+.user-details {
+  flex: 1;
+}
+
+.user-name {
+  font-size: 20px;
+  font-weight: 600;
+  color: #303133;
+  margin-bottom: 4px;
+}
+
+.user-id {
+  font-size: 14px;
+  color: #909399;
+}
+
 /* List Card */
 .list-card {
   border-radius: 12px;
@@ -400,17 +477,137 @@ onMounted(() => {
 
 /* Responsive */
 @media (max-width: 768px) {
+  .my-stats-page {
+    padding: 10px;
+  }
+
   .page-header {
     padding: 24px;
+    border-radius: 8px;
+  }
+  
+  .header-decoration {
+    display: none;
   }
 
   .title {
     font-size: 24px;
   }
+  
+  .subtitle {
+    font-size: 14px;
+  }
+
+  .stats-container {
+    margin-bottom: 20px;
+  }
 
   .stat-card {
     margin-bottom: 16px;
     padding: 20px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .stat-icon {
+    width: 48px;
+    height: 48px;
+    font-size: 24px;
+  }
+  
+  .stat-value {
+    font-size: 28px;
+  }
+  
+  .user-info-content {
+    flex-direction: column;
+    text-align: center;
+    gap: 12px;
+  }
+
+  .user-actions {
+    width: 100%;
+    margin-top: 8px;
+  }
+
+  .user-actions :deep(.el-button) {
+    width: 100%;
+  }
+  
+  .list-card {
+    border-radius: 8px;
+  }
+  
+  /* Make table scrollable container adjustments if needed, 
+     but element-plus handles scrolling automatically */
+}
+
+@media (min-width: 769px) {
+  .visible-xs-only {
+      display: none !important;
   }
 }
+
+@media (max-width: 768px) {
+  .hidden-xs-only {
+      display: none !important;
+  }
+
+  .mobile-activity-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+  }
+
+  .mobile-activity-item {
+      border: 1px solid #ebeef5;
+      border-radius: 8px;
+      padding: 16px;
+      background: #fff;
+  }
+
+  .item-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      border-bottom: 1px solid #f0f2f5;
+      padding-bottom: 8px;
+  }
+
+  .item-title {
+      font-weight: 600;
+      font-size: 16px;
+      color: #303133;
+  }
+
+  .item-body {
+      font-size: 14px;
+      color: #606266;
+  }
+
+  .item-row {
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+  }
+
+  .highlight-text {
+      color: var(--el-color-primary);
+      font-weight: 500;
+  }
+  
+  .time-text {
+      font-size: 12px;
+      color: #909399;
+  }
+
+  .empty-mobile-text {
+      text-align: center;
+      color: #909399;
+      padding: 40px 0;
+  }
+}
+
 </style>

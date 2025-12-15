@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useRouter, useRoute } from 'vue-router'
-import { computed, onMounted, watch } from 'vue'
+import { computed, onMounted, watch, ref } from 'vue'
 import { 
   Document, 
   Plus, 
@@ -9,7 +9,8 @@ import {
   SwitchButton,
   DataLine,
   Monitor,
-  Files
+  Files,
+  Upload
 } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/stores/useUserStore'
@@ -43,10 +44,11 @@ interface MenuItem {
 const allMenuItems: MenuItem[] = [
   { index: '/activities', label: '活动列表', icon: Files },
   { index: '/add-activity', label: '发布活动', icon: Plus, roles: ['functionary'] },
+  { index: '/import-activity', label: '后台导入', icon: Upload, roles: ['functionary', 'admin', 'superAdmin'] },
   { index: '/my-projects', label: '我的项目', icon: Document, roles: ['functionary','superAdmin'] },
   { index: '/my-stats', label: '我的时长', icon: DataLine },
   { index: '/admin-review', label: '管理员审核', icon: Document, roles: ['admin', 'superAdmin'] },
-  { index: '/monitoring', label: '系统监控', icon: Monitor, roles: ['superAdmin'] }
+  { index: '/system-monitor', label: '系统监控', icon: Monitor, roles: ['superAdmin'] }
 ]
 
 const visibleMenuItems = computed(() => {
@@ -73,8 +75,18 @@ const handleLogout = async () => {
   }
 }
 
+const isMobile = ref(false)
+
+const checkMobile = () => {
+  isMobile.value = window.innerWidth <= 768
+}
+
+const showUserDrawer = ref(false)
+
 onMounted(() => {
   userStore.loadUserInfo()
+  checkMobile()
+  window.addEventListener('resize', checkMobile)
 })
 
 // Watch for route changes to refresh user info (e.g., after login)
@@ -89,23 +101,31 @@ watch(() => route.path, () => {
   <el-menu
     :default-active="currentPath"
     class="sidebar-menu"
+    :mode="isMobile ? 'horizontal' : 'vertical'"
+    :ellipsis="false"
     @select="handleSelect"
   >
-    <div class="logo-container">
+    <div class="logo-container" v-if="!isMobile">
       <h1 class="logo-text">志愿活动管理</h1>
     </div>
     
-    <el-menu-item 
-      v-for="item in visibleMenuItems" 
-      :key="item.index" 
-      :index="item.index"
-    >
-      <el-icon><component :is="item.icon" /></el-icon>
-      <span>{{ item.label }}</span>
-    </el-menu-item>
+    <div class="menu-items-wrapper">
+      <el-menu-item 
+        v-for="item in visibleMenuItems" 
+        :key="item.index" 
+        :index="item.index"
+        class="custom-menu-item"
+      >
+        <div class="menu-item-content">
+          <el-icon><component :is="item.icon" /></el-icon>
+          <span>{{ item.label }}</span>
+        </div>
+      </el-menu-item>
+
+    </div>
     
-    <!-- User Info Section at Bottom -->
-    <div class="user-info-container">
+    <!-- User Info Section at Bottom (Desktop) -->
+    <div class="user-info-container" v-if="!isMobile">
       <el-divider />
       <div v-if="userStore.currentUser" class="user-info">
         <div class="user-avatar">
@@ -125,7 +145,7 @@ watch(() => route.path, () => {
           :icon="SwitchButton" 
           circle 
           size="small" 
-          @click="handleLogout"
+          @click.stop="handleLogout"
           title="退出登录"
           class="logout-btn"
         />
@@ -139,15 +159,57 @@ watch(() => route.path, () => {
         <span>未登录</span>
       </div>
     </div>
+    
+    <!-- Mobile User Drawer -->
+    <el-drawer
+      v-model="showUserDrawer"
+      title="用户信息"
+      direction="btt"
+      size="50%"
+      :with-header="true"
+      append-to-body
+      class="mobile-user-drawer"
+    >
+      <div class="drawer-user-content">
+         <div v-if="userStore.currentUser" class="mobile-user-info">
+            <div class="mobile-avatar">
+              <el-icon :size="50"><UserIcon /></el-icon>
+            </div>
+            <h3 class="mobile-username">{{ userStore.username.value }}</h3>
+            <p class="mobile-student-no">学号: {{ userStore.studentNo.value }}</p>
+            <el-tag :type="roleClean === 'admin'
+            || roleClean === 'superAdmin' ? 'danger'
+            : roleClean === 'functionary' ? 'warning'
+            : 'info'" class="mobile-role">
+              {{ roleLabels[roleClean || 'user'] || roleClean}}
+            </el-tag>
+            
+            <el-button type="danger" plain class="mobile-logout-btn" @click="handleLogout" :icon="SwitchButton">
+              退出登录
+            </el-button>
+         </div>
+          <div v-else class="mobile-login-prompt">
+            <p>您尚未登录</p>
+            <el-button type="primary" @click="$router.push('/login')">去登录</el-button>
+          </div>
+      </div>
+    </el-drawer>
   </el-menu>
 </template>
 
 <style scoped>
+
 .sidebar-menu {
   height: 100vh;
   border-right: 1px solid var(--el-menu-border-color);
   display: flex;
   flex-direction: column;
+}
+
+.menu-items-wrapper {
+  display: flex;
+  flex-direction: column;
+  flex: 1; /* Take up available space */
 }
 
 .logo-container {
@@ -247,5 +309,103 @@ watch(() => route.path, () => {
 .logout-btn:hover {
   color: var(--el-color-danger);
   border-color: var(--el-color-danger);
+}
+
+@media (max-width: 768px) {
+  .sidebar-menu {
+    flex-direction: row;
+    height: auto;
+    min-height: 60px;
+    border-right: none;
+    border-top: 1px solid var(--el-menu-border-color);
+    width: 100%;
+    background: #fff;
+    padding: 0;
+  }
+
+  .menu-items-wrapper {
+    flex-direction: row;
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  /* Force override Element Plus menu item styles */
+  :deep(.el-menu-item) {
+    height: 60px !important;
+    line-height: normal !important;
+    padding: 0 4px !important;
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    border-bottom: none !important;
+  }
+  
+  :deep(.el-menu-item.is-active) {
+    border-bottom: 2px solid var(--el-color-primary) !important; 
+    /* Or top border if preferred since it's bottom nav */
+  }
+
+  .menu-item-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    height: 100%;
+  }
+
+  :deep(.el-menu-item) .el-icon {
+    margin: 0 !important;
+    font-size: 24px;
+  }
+  
+
+  :deep(.el-menu-item) span {
+    font-size: 10px;
+    line-height: 1;
+  }
+}
+
+.mobile-user-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 0;
+}
+
+.mobile-avatar {
+  background: var(--el-color-primary-light-9);
+  color: var(--el-color-primary);
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.mobile-username {
+  margin: 0 0 8px 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.mobile-student-no {
+  color: var(--el-text-color-secondary);
+  margin: 0 0 16px 0;
+}
+
+.mobile-role {
+  margin-bottom: 24px;
+}
+
+.mobile-logout-btn {
+  width: 80%;
+}
+
+.mobile-login-prompt {
+  text-align: center;
+  padding: 40px;
 }
 </style>

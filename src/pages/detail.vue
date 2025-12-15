@@ -8,6 +8,7 @@ import type { Activity } from '@/entity/Activity'
 import { ActivityStatus } from '@/entity/ActivityStatus'
 import { ActivityType } from '@/entity/ActivityType'
 import { useUserStore } from '@/stores/useUserStore'
+import { getActivityTypeLabel, getActivityStatusLabel } from '@/util/util'
 
 
 const route = useRoute()
@@ -32,7 +33,10 @@ const functionaryName = ref<string>('')
 // Fetch activity details
 const fetchActivity = async () => {
   const id = route.params.id as string
-  if (!id) return
+  if (!id) {
+    ElMessage.error('未找到活动ID')
+    return
+  }
 
   loading.value = true
   try {
@@ -43,12 +47,22 @@ const fetchActivity = async () => {
         functionaryName.value = data.functionary
       }
     } else {
-      ElMessage.error('未找到该活动')
-      await router.push('/activities')
+      console.warn(`Activity with id ${id} not found`)
+      ElMessage.error({
+        message: '未找到该活动',
+        duration: 3000
+      })
+      // Wait a moment before redirecting so user can see the message
+      setTimeout(() => {
+        router.push('/activities')
+      }, 1500)
     }
   } catch (error) {
     console.error('Failed to fetch activity:', error)
-    ElMessage.error('加载活动详情失败')
+    ElMessage.error({
+      message: '加载活动详情失败，请检查网络连接后重试',
+      duration: 3000
+    })
   } finally {
     loading.value = false
   }
@@ -78,7 +92,7 @@ const handleToggleEnroll = async () => {
         type: 'info'
       })
       enrolling.value = true
-      const response = await activityService.enrollActivity(activity.value.id, userStore.studentNo.value)
+      const response = await activityService.enrollActivity(activity.value.id)
       if (response.code === 200) {
         ElMessage.success('报名成功')
         await fetchActivity()
@@ -126,32 +140,9 @@ const formatDate = (dateString: string | undefined) => {
   })
 }
 
-const getStatusText = (status: ActivityStatus): string => {
-  const statusMap: Record<ActivityStatus, string> = {
-    [ActivityStatus.EnrollmentNotStart]: '未开始报名',
-    [ActivityStatus.EnrollmentStarted]: '报名中',
-    [ActivityStatus.EnrollmentEnded]: '报名结束',
-    [ActivityStatus.ActivityStarted]: '活动进行中',
-    [ActivityStatus.ActivityEnded]: '活动已结束',
-    [ActivityStatus.UnderReview]: '审核中',
-    [ActivityStatus.FailReview]: '审核失败'
-  }
-  return statusMap[status] || String(status)
-}
+const getStatusText = getActivityStatusLabel
 
-const getTypeText = (type: ActivityType): string => {
-  const typeMap: Record<ActivityType, string> = {
-    [ActivityType.COMMUNITY_SERVICE]: '社区服务',
-    [ActivityType.CULTURE_SERVICE]: '文化服务',
-    [ActivityType.EMERGENCY_RESCUE]: '应急救援',
-    [ActivityType.ANIMAL_PROTECTION]: '动物保护',
-    [ActivityType.POVERTY_ASSISTANCE]: '扶贫助困',
-    [ActivityType.ELDERLY_DISABLED_ASSISTANCE]: '扶老助残',
-    [ActivityType.MEDICAL_ASSISTANCE]: '慰病助医',
-    [ActivityType.ORPHAN_EDUCATION_ASSISTANCE]: '救孤助学'
-  }
-  return typeMap[type] || type
-}
+const getTypeText = getActivityTypeLabel
 
 const getStatusType = (status: ActivityStatus): 'success' | 'warning' | 'info' | 'danger' => {
   switch (status) {
@@ -493,14 +484,65 @@ onMounted(() => {
 @media (max-width: 900px) {
   .main-content {
     grid-template-columns: 1fr;
+    gap: 16px;
   }
   
   .banner-section {
     height: 200px;
+    margin-bottom: 20px;
   }
   
   .activity-title {
     font-size: 24px;
+    margin-bottom: 10px;
+  }
+  
+  .banner-overlay {
+    padding: 20px;
+  }
+}
+
+@media (max-width: 600px) {
+  .detail-page {
+    padding: 10px;
+  }
+
+  .banner-section {
+    height: 180px;
+    border-radius: 8px;
+  }
+
+  .activity-title {
+    font-size: 20px;
+  }
+  
+  .activity-meta {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  /* Make tags smaller */
+  .activity-meta .el-tag {
+    height: 24px;
+    padding: 0 8px;
+    font-size: 12px;
+  }
+
+  .info-column {
+    order: 2; /* Put info after description if desired, or keep as is. Usually info is important so keep it top */
+  }
+
+  .action-area {
+    margin-top: 20px;
+  }
+  
+  .enroll-btn {
+    height: 40px;
+    font-size: 14px;
+  }
+  
+  .description-card {
+    min-height: auto;
   }
 }
 </style>

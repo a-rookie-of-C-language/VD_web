@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {computed, onMounted, ref} from 'vue'
+import {computed, onMounted, onUnmounted, ref} from 'vue'
 import type {UploadFile, UploadProps} from 'element-plus'
 import {ElMessage, ElMessageBox} from 'element-plus'
 import {Document, Edit, RefreshLeft, Search, UploadFilled, User, View,} from '@element-plus/icons-vue'
@@ -10,6 +10,7 @@ import {ActivityType} from '@/entity/ActivityType'
 import {useUserStore} from '@/stores/useUserStore'
 import {userService} from '@/services/userService'
 import dayjs from 'dayjs'
+import { getActivityTypeLabel, getActivityStatusLabel } from '@/util/util'
 
 const userStore = useUserStore()
 const activities = ref<Activity[]>([])
@@ -18,6 +19,7 @@ const searchQuery = ref('')
 const currentPage = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
+const descriptionsDirection = ref<'horizontal' | 'vertical'>('horizontal')
 
 const filtered = computed(() => {
   if (!searchQuery.value) return activities.value
@@ -28,18 +30,7 @@ const filtered = computed(() => {
   )
 })
 
-const statusText = (s: ActivityStatus) => {
-  switch (s) {
-    case ActivityStatus.UnderReview: return '审核中'
-    case ActivityStatus.FailReview: return '审核失败'
-    case ActivityStatus.EnrollmentNotStart: return '报名未开始'
-    case ActivityStatus.EnrollmentStarted: return '报名进行中'
-    case ActivityStatus.EnrollmentEnded: return '报名已结束'
-    case ActivityStatus.ActivityStarted: return '活动进行中'
-    case ActivityStatus.ActivityEnded: return '活动已结束'
-    default: return String(s)
-  }
-}
+const statusText = getActivityStatusLabel
 
 const statusType = (s: ActivityStatus): 'info'|'success'|'danger'|'warning'|'primary' => {
   switch (s) {
@@ -52,19 +43,7 @@ const statusType = (s: ActivityStatus): 'info'|'success'|'danger'|'warning'|'pri
   }
 }
 
-const getTypeText = (type: ActivityType): string => {
-  const typeMap: Record<ActivityType, string> = {
-    [ActivityType.COMMUNITY_SERVICE]: '社区服务',
-    [ActivityType.CULTURE_SERVICE]: '文化服务',
-    [ActivityType.EMERGENCY_RESCUE]: '应急救援',
-    [ActivityType.ANIMAL_PROTECTION]: '动物保护',
-    [ActivityType.POVERTY_ASSISTANCE]: '扶贫助困',
-    [ActivityType.ELDERLY_DISABLED_ASSISTANCE]: '扶老助残',
-    [ActivityType.MEDICAL_ASSISTANCE]: '慰病助医',
-    [ActivityType.ORPHAN_EDUCATION_ASSISTANCE]: '救孤助学'
-  }
-  return typeMap[type] || type
-}
+const getTypeText = getActivityTypeLabel
 
 const formatTime = (time: string | undefined) => {
   if (!time) return '暂无'
@@ -238,7 +217,19 @@ const openView = (a: Activity) => {
   })).catch(() => {})
 }
 
-onMounted(fetchMine)
+const checkScreenSize = () => {
+  descriptionsDirection.value = window.innerWidth <= 768 ? 'vertical' : 'horizontal'
+}
+
+onMounted(() => {
+  fetchMine()
+  checkScreenSize()
+  window.addEventListener('resize', checkScreenSize)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', checkScreenSize)
+})
 </script>
 
 <template>
@@ -273,98 +264,161 @@ onMounted(fetchMine)
 
     <!-- Content Section -->
     <el-card class="list-card" shadow="hover">
-      <el-table 
-        :data="filtered" 
-        v-loading="loading" 
-        style="width: 100%" 
-        :header-cell-style="{ background: '#f5f7fa', color: '#606266' }"
-        stripe
-      >
-        <el-table-column prop="name" label="项目名称" min-width="180">
-          <template #default="{ row }">
-            <div class="project-name-cell">
-              <el-avatar :size="40" :src="row.coverImage" shape="square" class="project-cover">
-                <el-icon><Document /></el-icon>
-              </el-avatar>
-              <span class="name-text">{{ row.name }}</span>
-            </div>
-          </template>
-        </el-table-column>
-        
-        <el-table-column label="类型" width="120">
-          <template #default="{ row }">
-            <el-tag effect="plain" round>{{ getTypeText(row.type) }}</el-tag>
-          </template>
-        </el-table-column>
+      <!-- Desktop Table -->
+      <div class="hidden-xs-only">
+        <el-table 
+          :data="filtered" 
+          v-loading="loading" 
+          style="width: 100%" 
+          :header-cell-style="{ background: '#f5f7fa', color: '#606266' }"
+          stripe
+        >
+          <el-table-column prop="name" label="项目名称" min-width="180">
+            <template #default="{ row }">
+              <div class="project-name-cell">
+                <el-avatar :size="40" :src="row.coverImage" shape="square" class="project-cover">
+                  <el-icon><Document /></el-icon>
+                </el-avatar>
+                <span class="name-text">{{ row.name }}</span>
+              </div>
+            </template>
+          </el-table-column>
+          
+          <el-table-column label="类型" width="120">
+            <template #default="{ row }">
+              <el-tag effect="plain" round>{{ getTypeText(row.type) }}</el-tag>
+            </template>
+          </el-table-column>
 
-        <el-table-column label="状态" width="120">
-          <template #default="{ row }">
-            <el-tag :type="statusType(row.status)" effect="dark" size="small">{{ statusText(row.status) }}</el-tag>
-          </template>
-        </el-table-column>
+          <el-table-column label="状态" width="120">
+            <template #default="{ row }">
+              <el-tooltip
+                v-if="row.status === ActivityStatus.FailReview && row.rejectedReason"
+                class="box-item"
+                effect="dark"
+                :content="'拒绝原因: ' + row.rejectedReason"
+                placement="top"
+              >
+                <el-tag :type="statusType(row.status)" effect="dark" size="small" style="cursor: help">{{ statusText(row.status) }}</el-tag>
+              </el-tooltip>
+              <el-tag v-else :type="statusType(row.status)" effect="dark" size="small">{{ statusText(row.status) }}</el-tag>
+            </template>
+          </el-table-column>
 
-        <el-table-column label="报名情况" width="150">
-          <template #default="{ row }">
-            <div class="participants-info">
-              <el-icon><User /></el-icon>
-              <span>{{ row.participants?.length || 0 }} / {{ row.maxParticipants }}</span>
-            </div>
-            <el-progress 
-              :percentage="Math.min(((row.participants?.length || 0) / row.maxParticipants) * 100, 100)" 
-              :show-text="false" 
-              :status="row.isFull ? 'success' : ''"
-              class="participants-progress"
-            />
-          </template>
-        </el-table-column>
+          <el-table-column label="报名情况" width="150">
+            <template #default="{ row }">
+              <div class="participants-info">
+                <el-icon><User /></el-icon>
+                <span>{{ row.participants?.length || 0 }} / {{ row.maxParticipants }}</span>
+              </div>
+              <el-progress 
+                :percentage="Math.min(((row.participants?.length || 0) / row.maxParticipants) * 100, 100)" 
+                :show-text="false" 
+                :status="row.isFull ? 'success' : ''"
+                class="participants-progress"
+              />
+            </template>
+          </el-table-column>
 
-        <el-table-column label="活动时间" width="200">
-          <template #default="{ row }">
-            <div class="time-cell">
-              <div class="time-row"><span class="label">开始:</span> {{ formatTime(row.startTime) }}</div>
-              <div class="time-row"><span class="label">结束:</span> {{ row.endTime ? formatTime(row.endTime) : (row.expectedEndTime ? formatTime(row.expectedEndTime) + ' (预计)' : '活动未结束') }}</div>
-            </div>
-          </template>
-        </el-table-column>
+          <el-table-column label="活动时间" width="200">
+            <template #default="{ row }">
+              <div class="time-cell">
+                <div class="time-row"><span class="label">开始:</span> {{ formatTime(row.startTime) }}</div>
+                <div class="time-row"><span class="label">结束:</span> {{ row.endTime ? formatTime(row.endTime) : (row.expectedEndTime ? formatTime(row.expectedEndTime) + ' (预计)' : '活动未结束') }}</div>
+              </div>
+            </template>
+          </el-table-column>
 
-        <el-table-column label="操作" width="280" fixed="right">
-          <template #default="{ row }">
-            <div class="action-buttons">
-              <el-button size="small" @click="openView(row)" :icon="View" link type="primary">详情</el-button>
+          <el-table-column label="操作" width="280" fixed="right">
+            <template #default="{ row }">
+              <div class="action-buttons">
+                <el-button size="small" @click="openView(row)" :icon="View" link type="primary">详情</el-button>
+                <el-button 
+                  v-if="row.status === ActivityStatus.UnderReview || row.status === ActivityStatus.FailReview" 
+                  size="small" 
+                  type="primary" 
+                  @click="openEdit(row)" 
+                  :icon="Edit" 
+                  link
+                >修改</el-button>
+                <el-button 
+                  v-if="row.status === ActivityStatus.UnderReview" 
+                  size="small" 
+                  type="warning" 
+                  @click="revoke(row)"
+                  link
+                >撤销</el-button>
+                <el-button 
+                  v-if="row.status === ActivityStatus.FailReview" 
+                  size="small" 
+                  type="success" 
+                  @click="resubmit(row)"
+                  link
+                >重提</el-button>
+                <el-button 
+                  v-if="row.status === ActivityStatus.ActivityStarted" 
+                  size="small" 
+                  type="success" 
+                  @click="openSettlement(row)"
+                  link
+                >确认结束</el-button>
+              </div>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+
+      <!-- Mobile Card List -->
+      <div class="visible-xs-only mobile-list">
+        <div v-for="row in filtered" :key="row.id" class="mobile-project-card">
+          <div class="card-header">
+             <span class="card-title">{{ row.name }}</span>
+             <el-tag :type="statusType(row.status)" size="small" effect="dark">{{ statusText(row.status) }}</el-tag>
+          </div>
+          <div class="card-body">
+             <div class="card-row"><span class="label">类型: </span>{{ getTypeText(row.type) }}</div>
+             <div class="card-row">
+                 <span class="label">报名: </span>
+                 <span>{{ row.participants?.length || 0 }} / {{ row.maxParticipants }}</span>
+                 <el-tag size="small" :type="row.isFull ? 'danger' : 'success'" class="ml-2">
+                  {{ row.isFull ? '已满员' : '未满员' }}
+                </el-tag>
+             </div>
+             <div class="card-row timer-row"><span class="label">时间: </span>{{ formatTime(row.startTime) }}</div>
+          </div>
+          <div class="card-actions">
+              <el-button size="small" @click="openView(row)" link type="primary">详情</el-button>
               <el-button 
                 v-if="row.status === ActivityStatus.UnderReview || row.status === ActivityStatus.FailReview" 
                 size="small" 
                 type="primary" 
                 @click="openEdit(row)" 
-                :icon="Edit" 
                 link
               >修改</el-button>
-              <el-button 
-                v-if="row.status === ActivityStatus.UnderReview" 
-                size="small" 
-                type="warning" 
-                @click="revoke(row)"
-                link
-              >撤销</el-button>
-              <el-button 
-                v-if="row.status === ActivityStatus.FailReview" 
-                size="small" 
-                type="success" 
-                @click="resubmit(row)"
-                link
-              >重提</el-button>
-              <el-button 
-                v-if="row.status === ActivityStatus.ActivityStarted" 
-                size="small" 
-                type="success" 
-                @click="openSettlement(row)"
-                link
-              >确认结束</el-button>
-            </div>
-          </template>
-        </el-table-column>
-      </el-table>
-
+               <el-button 
+                  v-if="row.status === ActivityStatus.UnderReview" 
+                  size="small" 
+                  type="warning" 
+                  @click="revoke(row)"
+                  link
+                >撤销</el-button>
+                <el-button 
+                  v-if="row.status === ActivityStatus.FailReview" 
+                  size="small" 
+                  type="success" 
+                  @click="resubmit(row)"
+                  link
+                >重提</el-button>
+                <el-button 
+                  v-if="row.status === ActivityStatus.ActivityStarted" 
+                  size="small" 
+                  type="success" 
+                  @click="openSettlement(row)"
+                  link
+                >结束</el-button>
+          </div>
+        </div>
+      </div>
       
       <div class="pagination-container">
         <el-pagination
@@ -380,16 +434,16 @@ onMounted(fetchMine)
     </el-card>
 
     <!-- Edit Dialog -->
-    <el-dialog v-model="editDialogVisible" title="修改项目" width="700px" destroy-on-close class="custom-dialog">
+    <el-dialog v-model="editDialogVisible" title="修改项目" width="90%" destroy-on-close class="custom-dialog">
       <div v-if="editForm" class="dialog-content">
         <el-form :model="editForm" label-width="100px" label-position="top">
           <el-row :gutter="20">
-            <el-col :span="16">
+            <el-col :span="16" :xs="24">
               <el-form-item label="项目名称">
                 <el-input v-model="editForm.name" placeholder="请输入项目名称" />
               </el-form-item>
             </el-col>
-            <el-col :span="8">
+            <el-col :span="8" :xs="24">
               <el-form-item label="项目类型">
                 <el-select v-model="editForm.type" style="width:100%">
                   <el-option :value="ActivityType.COMMUNITY_SERVICE" label="社区服务" />
@@ -428,7 +482,7 @@ onMounted(fetchMine)
           </el-form-item>
 
           <el-row :gutter="20">
-            <el-col :span="12">
+            <el-col :span="12" :xs="24">
               <el-form-item label="报名时间">
                 <el-date-picker
                   v-model="editForm.EnrollmentStartTime"
@@ -444,7 +498,7 @@ onMounted(fetchMine)
                 />
               </el-form-item>
             </el-col>
-            <el-col :span="12">
+            <el-col :span="12" :xs="24">
               <el-form-item label="活动时间">
                 <el-date-picker
                   v-model="editForm.startTime"
@@ -469,12 +523,12 @@ onMounted(fetchMine)
           </el-row>
 
           <el-row :gutter="20">
-            <el-col :span="12">
+            <el-col :span="12" :xs="24">
               <el-form-item label="最大人数">
                 <el-input-number v-model="editForm.maxParticipants" :min="1" style="width: 100%" />
               </el-form-item>
             </el-col>
-            <el-col :span="12">
+            <el-col :span="12" :xs="24">
               <el-form-item label="志愿时长 (小时)">
                 <el-input-number v-model="editForm.duration" :min="0.5" :step="0.5" style="width: 100%" />
               </el-form-item>
@@ -491,7 +545,7 @@ onMounted(fetchMine)
     </el-dialog>
 
     <!-- View Details Dialog -->
-    <el-dialog v-model="viewDialogVisible" title="项目详情" width="800px" class="custom-dialog">
+    <el-dialog v-model="viewDialogVisible" title="项目详情" width="90%" class="custom-dialog">
       <div v-if="viewActivity" class="view-content">
         <div class="view-header">
           <img :src="viewActivity.CoverImage" class="view-cover" v-if="viewActivity.CoverImage"/>
@@ -504,7 +558,7 @@ onMounted(fetchMine)
           </div>
         </div>
 
-        <el-descriptions :column="2" border class="mt-4">
+        <el-descriptions :column="2" border class="mt-4" :direction="descriptionsDirection">
           <el-descriptions-item label="负责人">{{ userStore.username.value }}</el-descriptions-item>
           <el-descriptions-item label="志愿时长">{{ viewActivity.duration }} 小时</el-descriptions-item>
           <el-descriptions-item label="报名时间">
@@ -517,6 +571,9 @@ onMounted(fetchMine)
           </el-descriptions-item>
           <el-descriptions-item label="项目描述" :span="2">
             {{ viewActivity.description }}
+          </el-descriptions-item>
+          <el-descriptions-item label="拒绝原因" :span="2" v-if="viewActivity.status === ActivityStatus.FailReview && viewActivity.rejectedReason">
+            <span class="text-danger">{{ viewActivity.rejectedReason }}</span>
           </el-descriptions-item>
         </el-descriptions>
 
@@ -558,7 +615,7 @@ onMounted(fetchMine)
     </el-dialog>
 
     <!-- Settlement Dialog -->
-    <el-dialog v-model="settlementDialogVisible" title="活动结算" width="600px" class="custom-dialog">
+    <el-dialog v-model="settlementDialogVisible" title="活动结算" width="90%" class="custom-dialog">
       <div v-if="settlementActivity">
         <el-alert
           title="请勾选符合条件的参与者，系统将为他们发放志愿时长。"
@@ -597,6 +654,10 @@ onMounted(fetchMine)
 </template>
 
 <style scoped>
+.text-danger {
+  color: #f56c6c;
+  font-weight: bold;
+}
 .my-projects-page {
   max-width: 1200px;
   margin: 0 auto;
@@ -800,6 +861,56 @@ onMounted(fetchMine)
   margin-left: 8px;
 }
 
+.custom-dialog {
+  max-width: 800px; 
+}
+
+@media (max-width: 768px) {
+  .my-projects-page {
+    padding: 10px;
+  }
+
+  .page-header {
+    padding: 20px;
+    border-radius: 8px;
+  }
+  
+  .header-decoration {
+    display: none;
+  }
+  
+  .title {
+    font-size: 24px;
+  }
+  
+  .actions-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  
+  .search-input {
+    width: 100%;
+  }
+  
+  .view-header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  
+  .view-cover {
+    margin-bottom: 10px;
+  }
+  
+  .view-title-section .tags {
+    justify-content: center;
+  }
+}
+
+
+
+
 .empty-text {
   text-align: center;
   color: #909399;
@@ -813,5 +924,76 @@ onMounted(fetchMine)
   justify-content: center;
   padding: 20px 0;
   margin-top: 20px;
+}
+
+@media (min-width: 769px) {
+    .visible-xs-only {
+        display: none !important;
+    }
+}
+
+@media (max-width: 768px) {
+    .hidden-xs-only {
+        display: none !important;
+    }
+
+    .mobile-list {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .mobile-project-card {
+        border: 1px solid #ebeef5;
+        border-radius: 8px;
+        padding: 16px;
+        background: #fff;
+    }
+
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+        border-bottom: 1px solid #f0f2f5;
+        padding-bottom: 8px;
+    }
+    
+    .card-title {
+        font-weight: 600;
+        font-size: 16px;
+        color: #303133;
+    }
+
+    .card-body {
+        font-size: 14px;
+        color: #606266;
+    }
+
+    .card-row {
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+    }
+    
+    .card-row.timer-row {
+       font-size: 13px;
+    }
+
+    .card-row .label {
+        font-weight: 500;
+        margin-right: 8px;
+        min-width: 40px;
+    }
+
+    .card-actions {
+        display: flex;
+        justify-content: flex-end;
+        border-top: 1px solid #f0f2f5;
+        padding-top: 8px;
+        margin-top: 8px;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
 }
 </style>

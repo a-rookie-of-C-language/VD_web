@@ -7,6 +7,7 @@ import type { Activity } from '@/entity/Activity'
 import { ActivityStatus } from '@/entity/ActivityStatus'
 import { ActivityType } from '@/entity/ActivityType'
 import {userService} from "@/services/userService.ts";
+import { getActivityTypeLabel, getActivityStatusLabel } from '@/util/util'
 
 // State
 const activities = ref<Activity[]>([])
@@ -78,33 +79,10 @@ const formatDate = (dateString: string) => {
 }
 
 // Get status display text
-const getStatusText = (status: ActivityStatus): string => {
-  const statusMap: Record<ActivityStatus, string> = {
-    [ActivityStatus.EnrollmentNotStart]: '未开始报名',
-    [ActivityStatus.EnrollmentStarted]: '报名中',
-    [ActivityStatus.EnrollmentEnded]: '报名结束',
-    [ActivityStatus.ActivityStarted]: '活动进行中',
-    [ActivityStatus.ActivityEnded]: '活动已结束',
-    [ActivityStatus.UnderReview]: '审核中',
-    [ActivityStatus.FailReview]: '审核失败'
-  }
-  return statusMap[status] || String(status)
-}
+const getStatusText = getActivityStatusLabel
 
 // Get activity type display text
-const getTypeText = (type: ActivityType): string => {
-  const typeMap: Record<ActivityType, string> = {
-    [ActivityType.COMMUNITY_SERVICE]: '社区服务',
-    [ActivityType.CULTURE_SERVICE]: '文化服务',
-    [ActivityType.EMERGENCY_RESCUE]: '应急救援',
-    [ActivityType.ANIMAL_PROTECTION]: '动物保护',
-    [ActivityType.POVERTY_ASSISTANCE]: '扶贫助困',
-    [ActivityType.ELDERLY_DISABLED_ASSISTANCE]: '扶老助残',
-    [ActivityType.MEDICAL_ASSISTANCE]: '慰病助医',
-    [ActivityType.ORPHAN_EDUCATION_ASSISTANCE]: '救孤助学'
-  }
-  return typeMap[type] || type
-}
+const getTypeText = getActivityTypeLabel
 
 // Get participant count safely
 const getParticipantCount = (activity: Activity): string => {
@@ -126,18 +104,6 @@ const getStatusType = (status: ActivityStatus): 'success' | 'warning' | 'info' |
   }
 }
 
-const getPublicStatus = (activity: Activity): ActivityStatus => {
-  const now = Date.now()
-  const es = new Date(activity.EnrollmentStartTime).getTime()
-  const ee = new Date(activity.EnrollmentEndTime).getTime()
-  const st = new Date(activity.startTime).getTime()
-  const et = new Date(activity.endTime).getTime()
-  if (now < es) return ActivityStatus.EnrollmentNotStart
-  if (now >= es && now < ee) return ActivityStatus.EnrollmentStarted
-  if (now >= ee && now < st) return ActivityStatus.EnrollmentEnded
-  if (now >= st && now < et) return ActivityStatus.ActivityStarted
-  return ActivityStatus.ActivityEnded
-}
 
 const nameMap = ref<Record<string, string>>({})
 const getUsername = (studentNo: string): string => {
@@ -257,8 +223,8 @@ onMounted(() => {
             </div>
 
             <div class="info-row">
-              <el-tag :type="getStatusType(getPublicStatus(activity))" size="small" class="status-tag-inline">
-                {{ getStatusText(getPublicStatus(activity)) }}
+              <el-tag :type="getStatusType(activity.status)" size="small" class="status-tag-inline">
+                {{ getStatusText(activity.status) }}
               </el-tag>
             </div>
           </div>
@@ -496,35 +462,59 @@ onMounted(() => {
 
 @media (max-width: 800px) {
   .activities-grid {
-    grid-template-columns: 370px;
-    justify-content: center;
+    grid-template-columns: 1fr;
+    padding-left: 0;
+    gap: 30px;
+  }
+
+  .activity-card {
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto;
+    height: auto;
+    flex-direction: column;
+  }
+  
+  .card-image {
+    width: 100%;
+    height: 200px;
+  }
+  
+  .card-info {
+    padding: 10px;
   }
 
   .banner-section {
+    position: relative;
     width: 100%;
+    height: 120px;
     left: 0;
+    top: 0;
     transform: none;
+    margin-bottom: 20px;
+    border-radius: 0;
   }
 
   .content-wrapper {
+    position: relative;
     width: 100%;
     left: 0;
+    top: 0;
     transform: none;
-    padding: 0 20px;
+    padding: 0 16px;
   }
 
   .filter-section {
     flex-direction: column;
+    padding: 0;
+  }
+  
+  .filter-input, .filter-select {
+    width: 100%;
   }
 
   .filter-headers {
-    flex-wrap: wrap;
-    height: auto;
-    gap: 10px;
-  }
-
-  .header-item {
-    width: calc(50% - 5px);
+    display: none; /* Simplify headers on mobile */
   }
 }
 </style>

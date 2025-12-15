@@ -3,6 +3,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { activityService } from '../services/activityService'
 import { ActivityType } from '../entity/ActivityType'
+import { getActivityTypeOptions } from '@/util/util'
 import { ElMessage } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import type { UploadProps, UploadFile } from 'element-plus'
@@ -29,16 +30,7 @@ const form = reactive({
 const loading = ref(false)
 const imageUrl = ref('')
 
-const activityTypes = [
-  { value: ActivityType.COMMUNITY_SERVICE, label: '社区服务' },
-  { value: ActivityType.CULTURE_SERVICE, label: '文化服务' },
-  { value: ActivityType.EMERGENCY_RESCUE, label: '应急救援' },
-  { value: ActivityType.ANIMAL_PROTECTION, label: '动物保护' },
-  { value: ActivityType.POVERTY_ASSISTANCE, label: '扶贫助困' },
-  { value: ActivityType.ELDERLY_DISABLED_ASSISTANCE, label: '扶老助残' },
-  { value: ActivityType.MEDICAL_ASSISTANCE, label: '慰病助医' },
-  { value: ActivityType.ORPHAN_EDUCATION_ASSISTANCE, label: '救孤助学' }
-]
+const activityTypes = getActivityTypeOptions()
 
 const rules = {
   name: [{ required: true, message: '请输入活动名称', trigger: 'blur' }],
@@ -217,7 +209,7 @@ const handleCancel = () => {
         </el-divider>
         
         <el-row :gutter="20">
-          <el-col :span="12">
+          <el-col :span="12" :xs="24">
             <el-form-item label="报名开始时间" prop="enrollmentStartTime">
               <el-date-picker
                 v-model="form.enrollmentStartTime"
@@ -227,7 +219,7 @@ const handleCancel = () => {
               />
             </el-form-item>
           </el-col>
-          <el-col :span="12">
+          <el-col :span="12" :xs="24">
             <el-form-item label="报名结束时间" prop="enrollmentEndTime">
               <el-date-picker
                 v-model="form.enrollmentEndTime"
@@ -240,7 +232,7 @@ const handleCancel = () => {
         </el-row>
 
         <el-row :gutter="20">
-          <el-col :span="12">
+          <el-col :span="12" :xs="24">
             <el-form-item label="活动开始时间" prop="startTime">
               <el-date-picker
                 v-model="form.startTime"
@@ -250,7 +242,7 @@ const handleCancel = () => {
               />
             </el-form-item>
           </el-col>
-          <el-col :span="12">
+          <el-col :span="12" :xs="24">
             <el-form-item label="活动结束时间" prop="endTime">
               <el-date-picker
                 v-model="form.extendEndTime"
@@ -262,26 +254,30 @@ const handleCancel = () => {
           </el-col>
         </el-row>
 
-        <el-form-item label="最大参与人数" prop="maxParticipants">
-          <el-input-number
-            v-model="form.maxParticipants" 
-            :min="1"
-            style="width: 200px"
-          />
-          <span> 为0表示不限制人数</span>
-          <el-form-item label="志愿时长" prop="duration">
-            <el-input-number
-                v-model="form.duration"
-                :min="0.5"
-            />
-          </el-form-item>
+        <el-form-item label="最大参与人数" prop="maxParticipants" class="responsive-form-item">
+          <div class="input-wrapper">
+             <el-input-number
+               v-model="form.maxParticipants" 
+               :min="1"
+               style="width: 100%; max-width: 200px"
+             />
+             <span class="hint-text"> 为0表示不限制人数</span>
+          </div>
         </el-form-item>
 
-        <el-form-item>
-          <el-button type="primary" :loading="loading" @click="handleSubmit">
+        <el-form-item label="志愿时长" prop="duration">
+          <el-input-number
+              v-model="form.duration"
+              :min="0.5"
+              style="width: 100%; max-width: 200px"
+          />
+        </el-form-item>
+
+        <el-form-item class="form-actions">
+          <el-button type="primary" :loading="loading" @click="handleSubmit" class="action-btn">
             {{ loading ? '发布中...' : '发布活动' }}
           </el-button>
-          <el-button @click="handleCancel">取消</el-button>
+          <el-button @click="handleCancel" class="action-btn">取消</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -354,5 +350,46 @@ const handleCancel = () => {
   font-size: 12px;
   color: var(--el-text-color-secondary);
   margin-top: 8px;
+}
+
+@media (max-width: 768px) {
+  .add-activity-page {
+    padding: 10px;
+  }
+  
+  .form-container {
+    padding: 10px;
+  }
+  
+  .cover-uploader :deep(.el-upload) {
+    width: 100%;
+    max-width: 300px;
+  }
+  
+  .cover-image {
+    width: 100%;
+    height: auto;
+  }
+  
+  .input-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .hint-text {
+    margin-top: 5px;
+    font-size: 12px;
+  }
+  
+  .form-actions {
+    display: flex;
+    flex-direction: column; 
+  }
+  
+  .action-btn {
+    width: 100%;
+    margin: 5px 0 !important;
+  }
 }
 </style>

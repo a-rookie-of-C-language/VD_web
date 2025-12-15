@@ -187,7 +187,7 @@ onMounted(() => {
           v-for="activity in activities"
           :key="activity.id"
           class="activity-card"
-          @click="$router.push(`/activity/${activity.id}`)"
+          @click="$router.push(`/app/activity/${activity.id}`)"
         >
           <div class="card-image-wrapper">
             <img 

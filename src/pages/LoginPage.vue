@@ -16,7 +16,7 @@ async function handleLogin() {
   try {
     await userService.login(studentId.value, password.value)
     ElMessage.success('登录成功!')
-    await router.push('/activities')
+    await router.push('/app/activities')
   } catch (e: any) {
     console.error(e)
     ElMessage.error(e.message || '登录失败,请检查您的凭据')

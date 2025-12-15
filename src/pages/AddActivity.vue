@@ -49,7 +49,7 @@ onMounted(async () => {
   }
   if (role.value !== 'functionary') {
     ElMessage.warning('仅负责人可以发布活动')
-    await router.push('/activities')
+    await router.push('/app/activities')
   }
 })
 
@@ -117,7 +117,7 @@ const handleSubmit = async () => {
 
       await activityService.createActivity(activityData)
       ElMessage.success('活动创建成功!')
-      await router.push('/activities')
+      await router.push('/app/activities')
     } catch (err: any) {
       console.error('Failed to create activity:', err)
       ElMessage.error(err.message || '创建活动失败')

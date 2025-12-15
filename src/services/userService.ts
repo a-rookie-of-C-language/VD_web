@@ -95,16 +95,25 @@ export const userService = {
         if (!token) return "No token"
 
         try {
-            const res = await httpRequest<ApiResponse<any>>({
+            // 添加超时控制，避免在网络不好时等待过长
+            const timeoutPromise = new Promise<string>((_, reject) =>
+                setTimeout(() => reject(new Error('Timeout')), 5000)
+            )
+
+            const verifyPromise = httpRequest<ApiResponse<any>>({
                 method: 'get',
                 url: `${API_BASE_URL}/user/verifyToken`,
                 headers: { Authorization: `Bearer ${token}` }
+            }).then(res => {
+                if (res.code !== 200) {
+                    return res.message
+                }
+                return "Pass"
             })
-            if (res.code !== 200) {
-                return res.message
-            }
-            return "Pass"
+
+            return await Promise.race([verifyPromise, timeoutPromise])
         } catch (e: any) {
+            console.error('[verifyToken] Error:', e.message)
             return e.message || "Verification failed"
         }
     },

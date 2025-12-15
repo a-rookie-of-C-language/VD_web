@@ -37,8 +37,8 @@ onMounted(async () => {
       userStore.clearUser()
 
       // Only redirect if not already on login page
-      if (router.currentRoute.value.path !== '/login') {
-        await router.push('/login')
+      if (router.currentRoute.value.path !== '/') {
+        await router.push('/')
       }
     }
   }

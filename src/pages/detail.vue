@@ -54,7 +54,7 @@ const fetchActivity = async () => {
       })
       // Wait a moment before redirecting so user can see the message
       setTimeout(() => {
-        router.push('/activities')
+        router.push('/app/activities')
       }, 1500)
     }
   } catch (error) {
@@ -74,7 +74,7 @@ const handleToggleEnroll = async () => {
 
   if (!userStore.isLoggedIn.value) {
     ElMessage.warning('请先登录')
-    await router.push('/login')
+    await router.push('/')
     return
   }
 

@@ -2,21 +2,26 @@ import { createRouter, createWebHashHistory, type RouteRecordRaw } from 'vue-rou
 import LoginPage from '../pages/LoginPage.vue'
 import AllActivities from '../pages/AllActivities.vue'
 import MainLayout from '../layouts/MainLayout.vue'
+import { userService } from '@/services/userService'
 
 const routes: Array<RouteRecordRaw> = [
     {
-        path: '/login',
+        path: '/',
         name: 'Login',
         component: LoginPage
     },
     {
-        path: '/',
+        path: '/login',
+        redirect: '/'
+    },
+    {
+        path: '/app',
         component: MainLayout,
         meta: { requiresAuth: true },
         children: [
             {
                 path: '',
-                redirect: '/activities'
+                redirect: '/app/activities'
             },
             {
                 path: 'activities',
@@ -64,7 +69,17 @@ const routes: Array<RouteRecordRaw> = [
                 component: () => import('../pages/detail.vue')
             }
         ]
-    }
+    },
+    // 兼容旧路径，重定向到新路径
+    { path: '/activities', redirect: '/app/activities' },
+    { path: '/add-activity', redirect: '/app/add-activity' },
+    { path: '/import-activity', redirect: '/app/import-activity' },
+    { path: '/my-projects', redirect: '/app/my-projects' },
+    { path: '/my-stats', redirect: '/app/my-stats' },
+    { path: '/request-hours', redirect: '/app/request-hours' },
+    { path: '/admin-review', redirect: '/app/admin-review' },
+    { path: '/system-monitor', redirect: '/app/system-monitor' },
+    { path: '/activity/:id', redirect: to => `/app/activity/${to.params.id}` }
 ]
 
 const router = createRouter({
@@ -72,82 +87,84 @@ const router = createRouter({
     routes
 })
 
-router.beforeEach(async (to, from, next) => {
+router.beforeEach(async (to, _from, next) => {
     const userInfoStr = localStorage.getItem('userInfo')
     const token = localStorage.getItem('token')
 
-    // Basic check: both token and userInfo must exist
-    let isAuthenticated = !!(userInfoStr && token)
-
-    // Check if any matched route requires authentication (including parent routes)
+    // Check if any matched route requires authentication
     const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
     const requiresSuperAdmin = to.matched.some(record => record.meta.requiresSuperAdmin)
 
     console.log('[Router Guard]', {
         to: to.path,
-        from: from.path,
-        isAuthenticated,
         requiresAuth,
-        requiresSuperAdmin,
-        token: token ? 'exists' : 'missing',
-        userInfo: userInfoStr ? 'exists' : 'missing'
+        token: token ? 'exists' : 'missing'
     })
 
-    // If route requires auth and we have token, verify token validity
-    if (requiresAuth && token) {
-        try {
-            const { userService } = await import('@/services/userService')
-            const verifyResult = await userService.verifyToken()
-            if (verifyResult !== "Pass") {
-                console.log('[Router Guard] Token invalid, clearing auth data')
+    // 访问登录页时，检查是否有有效 token，有则跳转到活动列表
+    if (to.path === '/' || to.path === '/login') {
+        if (token && userInfoStr) {
+            try {
+                const verifyResult = await userService.verifyToken()
+                if (verifyResult === "Pass") {
+                    console.log('[Router Guard] Token valid, redirecting to /app/activities')
+                    next('/app/activities')
+                    return
+                } else {
+                    // Token 无效，清除并停留在登录页
+                    console.log('[Router Guard] Token invalid, staying on login')
+                    localStorage.removeItem('token')
+                    localStorage.removeItem('userInfo')
+                }
+            } catch (error) {
+                console.error('[Router Guard] Token verification failed:', error)
                 localStorage.removeItem('token')
                 localStorage.removeItem('userInfo')
-                isAuthenticated = false
+            }
+        }
+        next()
+        return
+    }
+
+    // 访问需要认证的页面
+    if (requiresAuth) {
+        if (!token || !userInfoStr) {
+            console.log('[Router Guard] No token, redirecting to login')
+            next('/')
+            return
+        }
+
+        // 验证 token 有效性
+        try {
+            const verifyResult = await userService.verifyToken()
+            if (verifyResult !== "Pass") {
+                console.log('[Router Guard] Token invalid, redirecting to login')
+                localStorage.removeItem('token')
+                localStorage.removeItem('userInfo')
+                next('/')
+                return
             }
         } catch (error) {
             console.error('[Router Guard] Token verification failed:', error)
             localStorage.removeItem('token')
             localStorage.removeItem('userInfo')
-            isAuthenticated = false
-        }
-    }
-
-    // If going to login page and already authenticated, redirect to activities
-    if (to.path === '/login') {
-        if (isAuthenticated) {
-            console.log('[Router Guard] Already logged in, redirecting to /activities')
-            next('/activities')
+            next('/')
             return
         }
-        console.log('[Router Guard] Going to login page')
-        next()
-        return
-    }
-
-    // Check if route requires authentication
-    if (requiresAuth && !isAuthenticated) {
-        console.log('[Router Guard] Auth required but not authenticated, redirecting to /login')
-        next('/login')
-        return
     }
 
     // Check if route requires super admin
     if (requiresSuperAdmin) {
-        if (!isAuthenticated) {
-            console.log('[Router Guard] Super admin required but not authenticated, redirecting to /login')
-            next('/login')
-            return
-        }
         try {
             const user = JSON.parse(userInfoStr!)
             if (user.role !== 'superAdmin') {
                 console.log('[Router Guard] Super admin required but user is not super admin')
-                next('/') // Or some 403 page
+                next('/app/activities')
                 return
             }
         } catch (error) {
             console.error('[Router Guard] Failed to parse user info:', error)
-            next('/login')
+            next('/')
             return
         }
     }

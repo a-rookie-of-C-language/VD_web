@@ -60,7 +60,7 @@ onMounted(async () => {
   }
   if (role.value !== 'functionary' && role.value !== 'admin' && role.value !== 'superAdmin') {
     ElMessage.warning('仅负责人或管理员可以导入活动')
-    await router.push('/activities')
+    await router.push('/app/activities')
   }
   loadUsers()
 })
@@ -144,7 +144,7 @@ const handleFormSubmit = async () => {
 
       await activityService.importActivity(activityData)
       ElMessage.success('活动导入成功!')
-      router.push('/activities')
+      router.push('/app/activities')
     } catch (err: any) {
       console.error('Failed to import activity:', err)
       ElMessage.error(err.message || '导入活动失败')

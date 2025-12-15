@@ -42,13 +42,13 @@ interface MenuItem {
 }
 
 const allMenuItems: MenuItem[] = [
-  { index: '/activities', label: '活动列表', icon: Files ,roles:['user','functionary','admin','superAdmin'] },
-  { index: '/add-activity', label: '发布活动', icon: Plus, roles: ['functionary'] },
-  { index: '/import-activity', label: '后台导入', icon: Upload, roles: ['functionary', 'admin', 'superAdmin'] },
-  { index: '/my-projects', label: '我的项目', icon: Document, roles: ['functionary','superAdmin'] },
-  { index: '/my-stats', label: '我的时长', icon: DataLine },
-  { index: '/admin-review', label: '管理员审核', icon: Document, roles: ['admin', 'superAdmin'] },
-  { index: '/system-monitor', label: '系统监控', icon: Monitor, roles: ['superAdmin'] }
+  { index: '/app/activities', label: '活动列表', icon: Files ,roles:['user','functionary','admin','superAdmin'] },
+  { index: '/app/add-activity', label: '发布活动', icon: Plus, roles: ['functionary'] },
+  { index: '/app/import-activity', label: '后台导入', icon: Upload, roles: ['functionary', 'admin', 'superAdmin'] },
+  { index: '/app/my-projects', label: '我的项目', icon: Document, roles: ['functionary','superAdmin'] },
+  { index: '/app/my-stats', label: '我的时长', icon: DataLine },
+  { index: '/app/admin-review', label: '管理员审核', icon: Document, roles: ['admin', 'superAdmin'] },
+  { index: '/app/system-monitor', label: '系统监控', icon: Monitor, roles: ['superAdmin'] }
 ]
 
 const visibleMenuItems = computed(() => {
@@ -69,7 +69,7 @@ const handleLogout = async () => {
     
     userStore.clearUser()
     ElMessage.success('已退出登录')
-    await router.push('/login')
+    await router.push('/')
   } catch {
     // User cancelled
   }
@@ -195,7 +195,7 @@ watch(() => route.path, () => {
          </div>
           <div v-else class="mobile-login-prompt">
             <p>您尚未登录</p>
-            <el-button type="primary" @click="$router.push('/login')">去登录</el-button>
+            <el-button type="primary" @click="$router.push('/')">去登录</el-button>
           </div>
       </div>
     </el-drawer>

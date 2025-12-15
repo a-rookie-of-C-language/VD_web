@@ -41,7 +41,7 @@ const handleLogout = async () => {
     })
     userStore.clearUser()
     ElMessage.success('已退出登录')
-    router.push('/login')
+    router.push('/')
   } catch (e) {
     // cancelled
   }
@@ -219,7 +219,7 @@ onMounted(() => {
 
           <el-table-column fixed="right" label="操作" width="100">
             <template #default="{ row }">
-              <el-button link type="primary" @click="$router.push(`/activity/${row.id}`)">
+              <el-button link type="primary" @click="$router.push(`/app/activity/${row.id}`)">
                 查看
                 <el-icon class="el-icon--right">
                   <ArrowRight/>
@@ -241,7 +241,7 @@ onMounted(() => {
           <div v-for="item in activities" :key="item.id" class="mobile-activity-item">
               <div class="item-header">
                   <span class="item-title">{{ item.name }}</span>
-                   <el-button link type="primary" size="small" @click="$router.push(`/activity/${item.id}`)">查看</el-button>
+                   <el-button link type="primary" size="small" @click="$router.push(`/app/activity/${item.id}`)">查看</el-button>
               </div>
               <div class="item-body">
                   <div class="item-row">

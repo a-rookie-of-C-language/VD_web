@@ -25,6 +25,8 @@
       "dist/**/*",
       "electron/**/*"
     ],
+    "asar": true,
+    "compression": "maximum",
     "publish": null,
     "win": {
       "target": "nsis"

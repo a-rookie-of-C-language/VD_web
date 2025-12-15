@@ -1,4 +1,4 @@
-import axios from 'axios'
+import { httpRequest } from './http'
 import type { Activity } from '@/entity/Activity'
 import type { ActivityStatus } from '@/entity/ActivityStatus'
 import type { ActivityType } from '@/entity/ActivityType'
@@ -33,15 +33,17 @@ export const activityService = {
 
     async getActivities(params: ActivityListParams = {}): Promise<ActivityListResponse> {
         const token = localStorage.getItem('token')
-        const response = await axios.get<{
+        const res = await httpRequest<{
             code: number;
             message: string;
             data: ActivityListResponse
-        }>(`${API_BASE_URL}/activities`, {
+        }>({
+            method: 'get',
+            url: `${API_BASE_URL}/activities`,
             params,
             headers: { Authorization: `Bearer ${String(token || '')}` }
         })
-        return response.data.data
+        return res.data
     },
 
 
@@ -50,15 +52,17 @@ export const activityService = {
 
         // First try: Call backend API directly to get single activity
         try {
-            const response = await axios.get<{
+            const res = await httpRequest<{
                 code: number;
                 message: string;
                 data: Activity
-            }>(`${API_BASE_URL}/activities/${id}`, {
+            }>({
+                method: 'get',
+                url: `${API_BASE_URL}/activities/${id}`,
                 headers: { Authorization: `Bearer ${String(token || '')}` }
             })
-            if (response.data.code === 200 && response.data.data) {
-                return response.data.data
+            if (res.code === 200 && res.data) {
+                return res.data
             }
         } catch (error) {
             console.warn(`Backend doesn't support GET /activities/${id}, falling back to list query`)
@@ -102,12 +106,13 @@ export const activityService = {
             formData.append('coverFile', activity.coverFile)
         }
         const token = localStorage.getItem('token')
-        const response = await axios.post<{ code: number; message: string; data: Activity }>(
-            `${API_BASE_URL}/activities`,
-            formData,
-            { headers: { 'Content-Type': 'multipart/form-data', Authorization: `Bearer ${String(token || '')}` } }
-        )
-        return response.data.data
+        const res = await httpRequest<{ code: number; message: string; data: Activity }>({
+            method: 'post',
+            url: `${API_BASE_URL}/activities`,
+            data: formData,
+            headers: { 'Content-Type': 'multipart/form-data', Authorization: `Bearer ${String(token || '')}` }
+        })
+        return res.data
     },
 
     async importActivity(activity: any): Promise<Activity> {
@@ -128,17 +133,20 @@ export const activityService = {
         }
 
         const token = localStorage.getItem('token')
-        const response = await axios.post<{
+        const res = await httpRequest<{
             code: number;
             message: string;
             data: Activity
-        }>(`${API_BASE_URL}/activities/import`, formData, {
+        }>({
+            method: 'post',
+            url: `${API_BASE_URL}/activities/import`,
+            data: formData,
             headers: {
                 'Content-Type': 'multipart/form-data',
                 Authorization: `Bearer ${String(token || '')}`
             }
         })
-        return response.data.data
+        return res.data
     },
 
     async getPendingActivities(params: {
@@ -150,47 +158,55 @@ export const activityService = {
         submittedBy?: string
     } = {}): Promise<{ items: Activity[], total: number }> {
         const token = localStorage.getItem('token')
-        const response = await axios.get<{
+        const res = await httpRequest<{
             code: number;
             message: string;
             data: { items: Activity[], total: number }
-        }>(`${API_BASE_URL}/pending-activities`, {
+        }>({
+            method: 'get',
+            url: `${API_BASE_URL}/pending-activities`,
             params,
             headers: { Authorization: `Bearer ${String(token || '')}` }
         })
-        return response.data.data
+        return res.data
     },
 
     async getPendingActivityById(id: string): Promise<Activity> {
         const token = localStorage.getItem('token')
-        const response = await axios.get<{
+        const res = await httpRequest<{
             code: number;
             message: string;
             data: Activity
-        }>(`${API_BASE_URL}/pending-activities/${id}`, {
+        }>({
+            method: 'get',
+            url: `${API_BASE_URL}/pending-activities/${id}`,
             headers: { Authorization: `Bearer ${String(token || '')}` }
         })
-        return response.data.data
+        return res.data
     },
 
     async approvePendingActivity(id: string): Promise<{ activityId: string }> {
         const token = localStorage.getItem('token')
-        const response = await axios.post<{
+        const res = await httpRequest<{
             code: number;
             message: string;
             data: { activityId: string }
-        }>(`${API_BASE_URL}/pending-activities/${id}/approve`, null, {
+        }>({
+            method: 'post',
+            url: `${API_BASE_URL}/pending-activities/${id}/approve`,
             headers: { Authorization: `Bearer ${String(token || '')}` }
         })
-        return response.data.data
+        return res.data
     },
 
     async rejectPendingActivity(id: string, reason?: string): Promise<void> {
         const token = localStorage.getItem('token')
-        await axios.post<{
+        await httpRequest<{
             code: number;
             message: string
-        }>(`${API_BASE_URL}/pending-activities/${id}/reject`, null, {
+        }>({
+            method: 'post',
+            url: `${API_BASE_URL}/pending-activities/${id}/reject`,
             params: { reason },
             headers: { Authorization: `Bearer ${String(token || '')}` }
         })
@@ -198,10 +214,12 @@ export const activityService = {
 
     async deletePendingActivity(id: string): Promise<void> {
         const token = localStorage.getItem('token')
-        await axios.delete<{
+        await httpRequest<{
             code: number;
             message: string
-        }>(`${API_BASE_URL}/pending-activities/${id}`, {
+        }>({
+            method: 'delete',
+            url: `${API_BASE_URL}/pending-activities/${id}`,
             headers: { Authorization: `Bearer ${String(token || '')}` }
         })
     },
@@ -230,84 +248,81 @@ export const activityService = {
             formData.append('coverFile', coverFile)
         }
         const token = localStorage.getItem('token')
-        const response = await axios.put<{ code: number; message: string; data: Activity }>(
-            `${API_BASE_URL}/activities/${id}`,
-            formData,
-            { headers: { 'Content-Type': 'multipart/form-data', Authorization: `Bearer ${String(token || '')}` } }
-        )
-        return response.data.data
+        const res = await httpRequest<{ code: number; message: string; data: Activity }>({
+            method: 'put',
+            url: `${API_BASE_URL}/activities/${id}`,
+            data: formData,
+            headers: { 'Content-Type': 'multipart/form-data', Authorization: `Bearer ${String(token || '')}` }
+        })
+        return res.data
     },
 
     async deleteActivity(id: string): Promise<{ code: number; message: string }> {
         const token = localStorage.getItem('token')
-        const response = await axios.delete<{ code: number; message: string }>(
-            `${API_BASE_URL}/activities/${id}`,
-            { headers: { Authorization: `Bearer ${String(token || '')}` } }
-        )
-        return response.data
+        const res = await httpRequest<{ code: number; message: string }>({
+            method: 'delete',
+            url: `${API_BASE_URL}/activities/${id}`,
+            headers: { Authorization: `Bearer ${String(token || '')}` }
+        })
+        return res
     },
 
     async enrollActivity(id: string): Promise<EnrollmentResponse> {
         const token = localStorage.getItem('token')
-        const response = await axios.post<EnrollmentResponse>(
-            `${API_BASE_URL}/activities/${id}/enroll`,
-            null,
-            {
-                headers: { Authorization: `Bearer ${String(token || '')}` }
-            }
-        )
-        return response.data
+        const res = await httpRequest<EnrollmentResponse>({
+            method: 'post',
+            url: `${API_BASE_URL}/activities/${id}/enroll`,
+            headers: { Authorization: `Bearer ${String(token || '')}` }
+        })
+        return res
     },
 
     async unenrollActivity(id: string): Promise<EnrollmentResponse> {
         const token = localStorage.getItem('token')
-        const response = await axios.post<EnrollmentResponse>(
-            `${API_BASE_URL}/activities/${id}/unenroll`,
-            null,
-            {
-                headers: { Authorization: `Bearer ${String(token || '')}` }
-            }
-        )
-        return response.data
+        const res = await httpRequest<EnrollmentResponse>({
+            method: 'post',
+            url: `${API_BASE_URL}/activities/${id}/unenroll`,
+            headers: { Authorization: `Bearer ${String(token || '')}` }
+        })
+        return res
     },
 
     async fetchMyActivities(page: number = 1, pageSize: number = 10): Promise<ActivityListResponse> {
         const token = localStorage.getItem('token')
-        const response = await axios.get<{ code: number; message: string; data: ActivityListResponse }>(
-            `${API_BASE_URL}/activities/MyActivities`,
-            {
-                params: { page, pageSize },
-                headers: { Authorization: `Bearer ${String(token || '')}` }
-            }
-        )
-        return response.data.data
+        const res = await httpRequest<{ code: number; message: string; data: ActivityListResponse }>({
+            method: 'get',
+            url: `${API_BASE_URL}/activities/MyActivities`,
+            params: { page, pageSize },
+            headers: { Authorization: `Bearer ${String(token || '')}` }
+        })
+        return res.data
     },
 
     async reviewActivity(id: string, approve: boolean, reason?: string): Promise<Activity> {
         const token = localStorage.getItem('token')
         const params: any = { approve }
         if (reason) params.reason = reason
-        const response = await axios.post<{ code: number; message: string; data: Activity }>(
-            `${API_BASE_URL}/activities/${id}/review`,
-            null,
-            {
-                params,
-                headers: { Authorization: `Bearer ${String(token || '')}` }
-            }
-        )
-        return response.data.data
+        const res = await httpRequest<{ code: number; message: string; data: Activity }>({
+            method: 'post',
+            url: `${API_BASE_URL}/activities/${id}/review`,
+            params,
+            headers: { Authorization: `Bearer ${String(token || '')}` }
+        })
+        return res.data
     },
 
     async fetchMyStatus(): Promise<{ totalDuration: number; totalActivities: number; activities: Activity[] }> {
         const token = localStorage.getItem('token')
-        const response = await axios.get<{
+        const res = await httpRequest<{
             code: number
             message: string
             data: { totalDuration: number; totalActivities: number; activities: Activity[] }
-        }>(`${API_BASE_URL}/activities/MyStatus`, {
+        }>({
+            method: 'get',
+            url: `${API_BASE_URL}/activities/MyStatus`,
             headers: { Authorization: `Bearer ${String(token || '')}` }
         })
-        return response.data.data
+        return res.data
     },
 
     // --- Personal Hour Requests ---
@@ -326,7 +341,10 @@ export const activityService = {
         }
 
         const token = localStorage.getItem('token')
-        await axios.post(`${API_BASE_URL}/activities/request_hours`, formData, {
+        await httpRequest<any>({
+            method: 'post',
+            url: `${API_BASE_URL}/activities/request_hours`,
+            data: formData,
             headers: {
                 'Content-Type': 'multipart/form-data',
                 Authorization: `Bearer ${String(token || '')}`
@@ -336,24 +354,31 @@ export const activityService = {
 
     async getPendingRequests(): Promise<Activity[]> {
         const token = localStorage.getItem('token')
-        const response = await axios.get<{ data: { items: Activity[] } }>(`${API_BASE_URL}/activities/pending_requests`, {
+        const res = await httpRequest<{ data: { items: Activity[] } }>({
+            method: 'get',
+            url: `${API_BASE_URL}/activities/pending_requests`,
             headers: { Authorization: `Bearer ${String(token || '')}` }
         })
-        return response.data.data.items || []
+        return res.data.items || []
     },
 
     async reviewRequest(id: string, approved: boolean, reason?: string): Promise<void> {
         const token = localStorage.getItem('token')
-        await axios.post(`${API_BASE_URL}/activities/review_request/${id}`, { approved, reason }, {
+        await httpRequest<any>({
+            method: 'post',
+            url: `${API_BASE_URL}/activities/review_request/${id}`,
+            data: { approved, reason },
             headers: { Authorization: `Bearer ${String(token || '')}` }
         })
     },
 
     async getMyRequests(): Promise<Activity[]> {
         const token = localStorage.getItem('token')
-        const response = await axios.get<{ data: { items: Activity[] } }>(`${API_BASE_URL}/activities/my_requests`, {
+        const res = await httpRequest<{ data: { items: Activity[] } }>({
+            method: 'get',
+            url: `${API_BASE_URL}/activities/my_requests`,
             headers: { Authorization: `Bearer ${String(token || '')}` }
         })
-        return response.data.data.items || []
+        return res.data.items || []
     }
 }

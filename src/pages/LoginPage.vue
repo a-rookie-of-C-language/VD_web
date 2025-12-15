@@ -4,8 +4,8 @@ import { ElMessage } from 'element-plus'
 import router from "@/router"
 import { userService } from '@/services/userService'
 
-const studentId = ref('12323020406')
-const password = ref('arookieofc')
+const studentId = ref('')
+const password = ref('')
 const rememberPassword = ref(false)
 const loading = ref(false)
 

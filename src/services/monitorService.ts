@@ -1,4 +1,4 @@
-import axios from 'axios'
+import { httpRequest } from './http'
 
 const API_BASE_URL = 'https://unscreenable-cathrine-unprejudicially.ngrok-free.dev/api'
 
@@ -72,13 +72,15 @@ export const monitorService = {
     async getFilterOptions(): Promise<{ colleges: string[], grades: string[], clazzes: string[] }> {
         const token = localStorage.getItem('token')
         try {
-            const response = await axios.get<{
+            const res = await httpRequest<{
                 code: number
                 data: { colleges: string[], grades: string[], clazzes: string[] }
-            }>(`${API_BASE_URL}/monitoring/filters`, {
+            }>({
+                method: 'get',
+                url: `${API_BASE_URL}/monitoring/filters`,
                 headers: { Authorization: `Bearer ${String(token || '')}` }
             })
-            return response.data.data
+            return res.data
         } catch (e) {
             console.warn('Failed to fetch filters from backend, returning empty.', e)
             return { colleges: [], grades: [], clazzes: [] }
@@ -87,14 +89,16 @@ export const monitorService = {
 
     async getUserStats(params: UserStatsParams): Promise<{ total: number, records: UserStatItem[] }> {
         const token = localStorage.getItem('token')
-        const response = await axios.get<{
+        const res = await httpRequest<{
             code: number
             data: { total: number, records: UserStatItem[] }
-        }>(`${API_BASE_URL}/monitoring/user-stats`, {
+        }>({
+            method: 'get',
+            url: `${API_BASE_URL}/monitoring/user-stats`,
             params,
             headers: { Authorization: `Bearer ${String(token || '')}` }
         })
-        return response.data.data
+        return res.data
     },
 
     async getDashboardData(
@@ -111,14 +115,16 @@ export const monitorService = {
             }
         })
 
-        const response = await axios.get<{
+        const res = await httpRequest<{
             code: number
             message: string
             data: MonitorDashboardData
-        }>(`${API_BASE_URL}/monitoring/dashboard`, {
+        }>({
+            method: 'get',
+            url: `${API_BASE_URL}/monitoring/dashboard`,
             params,
             headers: { Authorization: `Bearer ${String(token || '')}` }
         })
-        return response.data.data
+        return res.data
     }
 }

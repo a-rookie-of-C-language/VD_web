@@ -1,4 +1,4 @@
-import axios from 'axios'
+import { httpRequest } from './http'
 import type { LoginResponse, User } from '@/entity/User'
 
 
@@ -15,15 +15,13 @@ export const userService = {
      * Login user
      */
     async login(studentNo: string, password: string): Promise<LoginResponse> {
-        const response = await axios.get<ApiResponse<LoginResponse>>(
-            `${API_BASE_URL}/user/login`,
-            {
-                params: { studentNo, password }
-            }
-        )
-
-        if (response.data.code === 200) {
-            const userData = response.data.data
+        const res = await httpRequest<ApiResponse<LoginResponse>>({
+            method: 'get',
+            url: `${API_BASE_URL}/user/login`,
+            params: { studentNo, password }
+        })
+        if (res.code === 200) {
+            const userData = res.data
 
             // Store token in localStorage
             localStorage.setItem('token', userData.token)
@@ -31,7 +29,7 @@ export const userService = {
             localStorage.setItem('userInfo', JSON.stringify(userData))
             return userData
         } else {
-            throw new Error(response.data.message)
+            throw new Error(res.message)
         }
     },
 
@@ -43,28 +41,27 @@ export const userService = {
             throw new Error('No token found')
         }
 
-        const response = await axios.get<ApiResponse<User>>(
-            `${API_BASE_URL}/user/getUser`,
-            {
-                headers: { Authorization: `Bearer ${authToken}` }
-            }
-        )
-
-        if (response.data.code === 200) {
-            return response.data.data
+        const res = await httpRequest<ApiResponse<User>>({
+            method: 'get',
+            url: `${API_BASE_URL}/user/getUser`,
+            headers: { Authorization: `Bearer ${authToken}` }
+        })
+        if (res.code === 200) {
+            return res.data
         } else {
-            throw new Error(response.data.message)
+            throw new Error(res.message)
         }
     },
 
     async getUserByStudentNo(studentNo: string): Promise<User | null> {
         try {
-            const response = await axios.get<ApiResponse<User>>(
-                `${API_BASE_URL}/user/getUserByStudentNo`,
-                { params: { studentNo } }
-            )
-            if (response.data.code === 200) {
-                return response.data.data
+            const res = await httpRequest<ApiResponse<User>>({
+                method: 'get',
+                url: `${API_BASE_URL}/user/getUserByStudentNo`,
+                params: { studentNo }
+            })
+            if (res.code === 200) {
+                return res.data
             }
             return null
         } catch {
@@ -98,12 +95,13 @@ export const userService = {
         if (!token) return "No token"
 
         try {
-            const response = await axios
-                .get<ApiResponse<any>>(`${API_BASE_URL}/user/verifyToken`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                })
-            if (response.data.code !== 200) {
-                return response.data.message
+            const res = await httpRequest<ApiResponse<any>>({
+                method: 'get',
+                url: `${API_BASE_URL}/user/verifyToken`,
+                headers: { Authorization: `Bearer ${token}` }
+            })
+            if (res.code !== 200) {
+                return res.message
             }
             return "Pass"
         } catch (e: any) {
@@ -113,14 +111,13 @@ export const userService = {
 
     async getAllUsers(): Promise<User[]> {
         const token = localStorage.getItem('token')
-        const response = await axios.get<ApiResponse<User[]>>(
-            `${API_BASE_URL}/user/listAll`,
-            {
-                headers: { Authorization: `Bearer ${String(token || '')}` }
-            }
-        )
-        if (response.data.code === 200) {
-            return response.data.data
+        const res = await httpRequest<ApiResponse<User[]>>({
+            method: 'get',
+            url: `${API_BASE_URL}/user/listAll`,
+            headers: { Authorization: `Bearer ${String(token || '')}` }
+        })
+        if (res.code === 200) {
+            return res.data
         }
         return []
     }

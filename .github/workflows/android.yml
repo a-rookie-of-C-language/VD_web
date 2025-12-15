@@ -42,6 +42,26 @@ jobs:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
 
+      - name: Accept Android SDK licenses
+        env:
+          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+        run: |
+          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --licenses
+
+      - name: Install Android Build Tools
+        env:
+          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+        run: |
+          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" "platform-tools" "build-tools;34.0.0"
+
+      - name: Shim build-tools 29.0.3 to latest
+        env:
+          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+        run: |
+          if [ ! -d "$ANDROID_SDK_ROOT/build-tools/29.0.3" ] && [ -d "$ANDROID_SDK_ROOT/build-tools/34.0.0" ]; then
+            sudo ln -s "$ANDROID_SDK_ROOT/build-tools/34.0.0" "$ANDROID_SDK_ROOT/build-tools/29.0.3"
+          fi
+
       - name: Sign APK
         id: sign_app
         uses: r0adkll/sign-android-release@v1
@@ -51,7 +71,6 @@ jobs:
           alias: ${{ secrets.ANDROID_KEY_ALIAS }}
           keyStorePassword: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           keyPassword: ${{ secrets.ANDROID_KEY_PASSWORD }}
-          buildTools: 34.0.0
         
       - name: Upload Release APK
         uses: actions/upload-artifact@v4

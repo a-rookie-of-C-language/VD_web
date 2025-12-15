@@ -7,7 +7,6 @@ import type {Activity} from '@/entity/Activity'
 import {useUserStore} from '@/stores/useUserStore'
 import {Timer, Trophy, Calendar, ArrowRight, User as UserIcon, SwitchButton} from '@element-plus/icons-vue'
 import {ActivityStatus} from '@/entity/ActivityStatus'
-import {ActivityType} from '@/entity/ActivityType'
 import { getActivityTypeLabel, getActivityStatusLabel } from '@/util/util'
 
 const userStore = useUserStore()

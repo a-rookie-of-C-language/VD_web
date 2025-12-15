@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import { DataLine, User, Timer, Trophy } from '@element-plus/icons-vue'
 import { monitorService, type MonitorOverview, type TopUser, type UserStatItem } from '@/services/monitorService'
@@ -242,7 +242,7 @@ onMounted(() => {
         <el-table-column prop="activityCount" label="参加活动数" align="center" />
         <el-table-column prop="totalDuration" label="志愿时长 (小时)" align="right" sortable>
             <template #default="{ row }">
-                {{ row.totalDuration || row.hours }}
+                {{ row.totalDuration }}
             </template>
         </el-table-column>
       </el-table>
@@ -265,9 +265,9 @@ onMounted(() => {
                  <span class="stat-lbl">活动数</span>
                </div>
                <div class="stat-item">
-                 <span class="stat-val highlight">{{ user.totalDuration || user.hours }}</span>
+                 <span class="stat-val highlight">{{ user.totalDuration }}</span>
                  <span class="stat-lbl">志愿时长</span>
-               </div>
+              </div>
              </div>
           </div>
         </div>

@@ -211,8 +211,8 @@ export const activityService = {
         if (activity.name) formData.append('name', String(activity.name))
         if (activity.type) formData.append('type', String(activity.type))
         if (activity.description) formData.append('description', String(activity.description))
-        if (activity.enrollmentStartTime) formData.append('enrollmentStartTime', String(activity.enrollmentStartTime))
-        if (activity.enrollmentEndTime) formData.append('enrollmentEndTime', String(activity.enrollmentEndTime))
+        if (activity.EnrollmentStartTime) formData.append('enrollmentStartTime', String(activity.EnrollmentStartTime))
+        if (activity.EnrollmentEndTime) formData.append('enrollmentEndTime', String(activity.EnrollmentEndTime))
         if (activity.startTime) formData.append('startTime', String(activity.startTime))
         if (activity.expectedEndTime) formData.append('expectedEndTime', String(activity.expectedEndTime))
         if (activity.endTime) formData.append('endTime', String(activity.endTime))
@@ -223,14 +223,11 @@ export const activityService = {
         if (activity.participants && Array.isArray(activity.participants)) {
             activity.participants.forEach((p: string) => formData.append('participants[]', p))
         }
-        if (activity.qualifiedParticipants && Array.isArray(activity.qualifiedParticipants)) {
-            activity.qualifiedParticipants.forEach((p: string) => formData.append('qualifiedParticipants[]', p))
+        if (activity.Attachment && Array.isArray(activity.Attachment)) {
+            activity.Attachment.forEach((a: string) => formData.append('attachment[]', a))
         }
-        if (activity.attachment && Array.isArray(activity.attachment)) {
-            activity.attachment.forEach((a: string) => formData.append('attachment[]', a))
-        }
-        if (activity.coverFile) {
-            formData.append('coverFile', activity.coverFile)
+        if (coverFile) {
+            formData.append('coverFile', coverFile)
         }
         const token = localStorage.getItem('token')
         const response = await axios.put<{ code: number; message: string; data: Activity }>(

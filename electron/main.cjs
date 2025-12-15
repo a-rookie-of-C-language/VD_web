@@ -1,5 +1,6 @@
-const { app, BrowserWindow } = require('electron')
+const { app, BrowserWindow, dialog } = require('electron')
 const path = require('path')
+const { autoUpdater } = require('electron-updater')
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -22,6 +23,42 @@ function createWindow() {
 
 app.whenReady().then(() => {
   createWindow()
+  if (app.isPackaged) {
+    const baseUrl = process.env.UPDATE_BASE_URL
+    if (baseUrl) {
+      autoUpdater.setFeedURL({ provider: 'generic', url: baseUrl })
+    }
+    autoUpdater.autoDownload = false
+    autoUpdater.on('update-available', async () => {
+      const r = await dialog.showMessageBox({
+        type: 'info',
+        buttons: ['下载并安装', '稍后'],
+        defaultId: 0,
+        cancelId: 1,
+        title: '发现新版本',
+        message: '有可用更新'
+      })
+      if (r.response === 0) {
+        autoUpdater.downloadUpdate()
+      }
+    })
+    autoUpdater.on('update-downloaded', async () => {
+      const r = await dialog.showMessageBox({
+        type: 'info',
+        buttons: ['立即安装', '稍后'],
+        defaultId: 0,
+        cancelId: 1,
+        title: '更新已下载',
+        message: '是否现在安装更新？'
+      })
+      if (r.response === 0) {
+        autoUpdater.quitAndInstall()
+      }
+    })
+    setTimeout(() => {
+      autoUpdater.checkForUpdates()
+    }, 5000)
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

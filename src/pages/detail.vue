@@ -6,7 +6,6 @@ import { ArrowLeft, Timer, User, Document, Download } from '@element-plus/icons-
 import { activityService } from '@/services/activityService'
 import type { Activity } from '@/entity/Activity'
 import { ActivityStatus } from '@/entity/ActivityStatus'
-import { ActivityType } from '@/entity/ActivityType'
 import { useUserStore } from '@/stores/useUserStore'
 import { getActivityTypeLabel, getActivityStatusLabel } from '@/util/util'
 

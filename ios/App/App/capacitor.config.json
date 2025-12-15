@@ -1,0 +1,6 @@
+{
+	"appId": "com.vd.app",
+	"appName": "VolunteerDashboard",
+	"webDir": "dist",
+	"packageClassList": []
+}

@@ -28,6 +28,8 @@ my-release-key.jks
 *.sw?
 log.txt
 
+release
+
 *.tsbuildinfo
 
 .eslintcache

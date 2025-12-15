@@ -1,16 +1,14 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { activityService } from '../services/activityService'
 import { ActivityType } from '../entity/ActivityType'
-import { getActivityTypeOptions, getActivityStatusLabel } from '@/util/util'
+import { getActivityTypeOptions } from '@/util/util'
 import { ElMessage } from 'element-plus'
-import { UploadFilled, Plus, Document } from '@element-plus/icons-vue'
+import { Plus } from '@element-plus/icons-vue'
 import type { UploadProps, UploadUserFile, FormInstance } from 'element-plus'
 import type { Activity } from '@/entity/Activity'
 import { ActivityStatus } from '@/entity/ActivityStatus'
 
-const router = useRouter()
 const activeTab = ref('submit')
 const loading = ref(false)
 const myRequests = ref<Activity[]>([])
@@ -42,10 +40,12 @@ const rules = {
 }
 
 const handleFileChange: UploadProps['onChange'] = (file, fileList) => {
+  void file
   form.files = fileList
 }
 
 const handleRemove: UploadProps['onRemove'] = (file, fileList) => {
+  void file
   form.files = fileList
 }
 

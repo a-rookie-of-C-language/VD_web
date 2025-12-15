@@ -42,7 +42,7 @@ interface MenuItem {
 }
 
 const allMenuItems: MenuItem[] = [
-  { index: '/activities', label: '活动列表', icon: Files },
+  { index: '/activities', label: '活动列表', icon: Files ,roles:['user','functionary','admin','superAdmin'] },
   { index: '/add-activity', label: '发布活动', icon: Plus, roles: ['functionary'] },
   { index: '/import-activity', label: '后台导入', icon: Upload, roles: ['functionary', 'admin', 'superAdmin'] },
   { index: '/my-projects', label: '我的项目', icon: Document, roles: ['functionary','superAdmin'] },
@@ -84,14 +84,19 @@ const checkMobile = () => {
 const showUserDrawer = ref(false)
 
 onMounted(() => {
-  userStore.loadUserInfo()
+  // Only load user info if token exists
+  const token = localStorage.getItem('token')
+  if (token && !userStore.currentUser) {
+    userStore.loadUserInfo()
+  }
   checkMobile()
   window.addEventListener('resize', checkMobile)
 })
 
 // Watch for route changes to refresh user info (e.g., after login)
 watch(() => route.path, () => {
-  if (!userStore.currentUser) {
+  const token = localStorage.getItem('token')
+  if (token && !userStore.currentUser) {
     userStore.loadUserInfo()
   }
 })

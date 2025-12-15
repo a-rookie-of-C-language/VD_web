@@ -8,6 +8,7 @@ import type { Activity } from '@/entity/Activity'
 import { ActivityStatus } from '@/entity/ActivityStatus'
 import { useUserStore } from '@/stores/useUserStore'
 import { getActivityTypeLabel, getActivityStatusLabel } from '@/util/util'
+import defaultActivityImage from '@/image/activity-card-bg.png'
 
 
 const route = useRoute()
@@ -184,9 +185,9 @@ onMounted(() => {
       <!-- Banner -->
       <div class="banner-section">
         <img 
-          :src="activity.CoverImage || '/src/image/activity-card-bg.png'"
+          :src="activity.CoverImage || defaultActivityImage"
           class="banner-image"
-          @error="(e) => (e.target as HTMLImageElement).src = '/src/image/activity-card-bg.png'"
+          @error="(e) => (e.target as HTMLImageElement).src = defaultActivityImage"
          />
         <div class="banner-overlay">
           <h1 class="activity-title">{{ activity.name }}</h1>

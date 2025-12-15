@@ -8,6 +8,7 @@ import { ActivityStatus } from '@/entity/ActivityStatus'
 import { ActivityType } from '@/entity/ActivityType'
 import {userService} from "@/services/userService.ts";
 import { getActivityTypeLabel, getActivityStatusLabel } from '@/util/util'
+import defaultActivityImage from '@/image/activity-card-bg.png'
 
 // State
 const activities = ref<Activity[]>([])
@@ -177,7 +178,7 @@ onMounted(() => {
 
       <!-- Loading State -->
       <div v-if="loading" class="loading-container">
-        <p>加载中...</p>
+        <el-skeleton :rows="5" animated />
       </div>
 
       <!-- Activities Grid -->
@@ -190,10 +191,11 @@ onMounted(() => {
         >
           <div class="card-image-wrapper">
             <img 
-              :src="activity.CoverImage || '/src/image/activity-card-bg.png'"
-              :alt="activity.name" 
+              :src="activity.CoverImage || defaultActivityImage"
+              :alt="activity.name"
               class="card-image"
-              @error="(e) => (e.target as HTMLImageElement).src = '/src/image/activity-card-bg.png'"
+              loading="lazy"
+              @error="(e) => (e.target as HTMLImageElement).src = defaultActivityImage"
             />
           </div>
 
@@ -373,6 +375,11 @@ onMounted(() => {
 /* Card Image */
 .card-image-wrapper {
   flex-shrink: 0;
+  width: 163px;
+  height: 163px;
+  background-color: #f5f5f5;
+  border-radius: 5px;
+  overflow: hidden;
 }
 
 .card-image {
@@ -380,6 +387,7 @@ onMounted(() => {
   height: 163px;
   border-radius: 5px;
   object-fit: cover;
+  background-color: #f5f5f5;
 }
 
 /* Card Info */

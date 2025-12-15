@@ -3,6 +3,8 @@ import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import router from "@/router"
 import { userService } from '@/services/userService'
+import logoImage from '@/image/logo.png'
+import footerIcon from '@/image/footer-icon.jpg'
 
 const studentId = ref('')
 const password = ref('')
@@ -28,7 +30,7 @@ async function handleLogin() {
   <div class="login-container">
     <div class="login-content">
       <div class="logo-container">
-        <img src="../image/logo.png" alt="Logo" class="logo" />
+        <img :src="logoImage" alt="Logo" class="logo" />
       </div>
       <div class="login-card">
         <h1 class="title">Welcome Login</h1>
@@ -70,7 +72,7 @@ async function handleLogin() {
         </el-form>
 
         <div class="footer-image-container">
-          <img src="../image/footer-icon.jpg" class="footer-image" alt="Footer" />
+          <img :src="footerIcon" class="footer-image" alt="Footer" />
         </div>
       </div>
     </div>

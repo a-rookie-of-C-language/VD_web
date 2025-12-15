@@ -18,23 +18,37 @@ export function useUserStore() {
     }
     // Load user info from cache or API
     const loadUserInfo = async () => {
-        // Try to get cached user info first
-        currentUser.value = userService.getCachedUserInfo()
+        const token = localStorage.getItem('token')
 
-        // If no cached info, try to fetch from API
-        if (!currentUser.value) {
-            const token = localStorage.getItem('token')
-            // Only try to fetch if token exists
-            if (token) {
-                isLoading.value = true
-                try {
-                    currentUser.value = await userService.getUserInfo()
-                } catch (error) {
-                    console.debug('User info not available:', error)
-                } finally {
-                    isLoading.value = false
-                }
-            }
+        // Only load user info if token exists
+        if (!token) {
+            console.log('[UserStore] No token found, clearing user data')
+            currentUser.value = null
+            return
+        }
+
+        // Try to get cached user info first (only if token exists)
+        const cachedUser = userService.getCachedUserInfo()
+        if (cachedUser) {
+            console.log('[UserStore] Loaded user from cache:', cachedUser.studentNo)
+            currentUser.value = cachedUser
+            return
+        }
+
+        // If no cached info, fetch from API
+        isLoading.value = true
+        try {
+            console.log('[UserStore] Fetching user info from API')
+            currentUser.value = await userService.getUserInfo()
+            console.log('[UserStore] User info loaded from API:', currentUser.value?.studentNo)
+        } catch (error) {
+            console.error('[UserStore] Failed to load user info:', error)
+            // Clear invalid token and user data
+            localStorage.removeItem('token')
+            localStorage.removeItem('userInfo')
+            currentUser.value = null
+        } finally {
+            isLoading.value = false
         }
     }
 

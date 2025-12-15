@@ -21,11 +21,11 @@ const userStore = useUserStore()
 
 const currentPath = computed(() => route.path)
 
+
 const handleSelect = (index: string) => {
   router.push(index)
 }
 
-const roleClean = userStore.role
 
 const roleLabels: Record<string, string> = {
   user: '普通用户',
@@ -52,7 +52,7 @@ const allMenuItems: MenuItem[] = [
 ]
 
 const visibleMenuItems = computed(() => {
-  const currentRole = roleClean.value || 'user'
+  const currentRole = userStore.role.value || 'user'
   return allMenuItems.filter(item => {
     if (!item.roles) return true
     return item.roles.includes(currentRole)
@@ -139,11 +139,11 @@ watch(() => route.path, () => {
         <div class="user-details">
           <div class="user-name">{{ userStore.username.value }}</div>
           <div class="user-student-no">学号: {{ userStore.studentNo.value }}</div>
-          <el-tag :type="roleClean === 'admin'
-          || roleClean === 'superAdmin' ? 'danger'
-          : roleClean === 'functionary' ? 'warning'
+          <el-tag :type="userStore.role.value === 'admin'
+          || userStore.role.value === 'superAdmin' ? 'danger'
+          : userStore.role.value === 'functionary' ? 'warning'
           : 'info'" size="small" class="user-role">
-            {{ roleLabels[roleClean || 'user'] || roleClean}}
+            {{ roleLabels[userStore.role.value || 'user'] || userStore.role.value }}
           </el-tag>
         </div>
         <el-button 
@@ -182,11 +182,11 @@ watch(() => route.path, () => {
             </div>
             <h3 class="mobile-username">{{ userStore.username.value }}</h3>
             <p class="mobile-student-no">学号: {{ userStore.studentNo.value }}</p>
-            <el-tag :type="roleClean === 'admin'
-            || roleClean === 'superAdmin' ? 'danger'
-            : roleClean === 'functionary' ? 'warning'
+            <el-tag :type="userStore.role.value === 'admin'
+            || userStore.role.value === 'superAdmin' ? 'danger'
+            : userStore.role.value === 'functionary' ? 'warning'
             : 'info'" class="mobile-role">
-              {{ roleLabels[roleClean || 'user'] || roleClean}}
+              {{ roleLabels[userStore.role.value || 'user'] || userStore.role.value }}
             </el-tag>
             
             <el-button type="danger" plain class="mobile-logout-btn" @click="handleLogout" :icon="SwitchButton">

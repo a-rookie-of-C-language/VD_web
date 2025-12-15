@@ -12,6 +12,7 @@ const routes: Array<RouteRecordRaw> = [
     {
         path: '/',
         component: MainLayout,
+        meta: { requiresAuth: true },
         children: [
             {
                 path: '',

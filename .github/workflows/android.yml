@@ -35,6 +35,7 @@ jobs:
       - name: Build Release APK
         run: |
           cd android
+          chmod +x gradlew
           ./gradlew assembleRelease
         env:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}

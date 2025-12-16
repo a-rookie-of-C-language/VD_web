@@ -1,7 +1,7 @@
-import { httpRequest } from './http'
-import type { Activity } from '@/entity/Activity'
-import type { ActivityStatus } from '@/entity/ActivityStatus'
-import type { ActivityType } from '@/entity/ActivityType'
+import {httpRequest} from './http'
+import type {Activity} from '@/entity/Activity'
+import type {ActivityStatus} from '@/entity/ActivityStatus'
+import type {ActivityType} from '@/entity/ActivityType'
 
 const API_BASE_URL = 'https://unscreenable-cathrine-unprejudicially.ngrok-free.dev/api'
 
@@ -259,32 +259,29 @@ export const activityService = {
 
     async deleteActivity(id: string): Promise<{ code: number; message: string }> {
         const token = localStorage.getItem('token')
-        const res = await httpRequest<{ code: number; message: string }>({
+        return await httpRequest<{ code: number; message: string }>({
             method: 'delete',
             url: `${API_BASE_URL}/activities/${id}`,
-            headers: { Authorization: `Bearer ${String(token || '')}` }
+            headers: {Authorization: `Bearer ${String(token || '')}`}
         })
-        return res
     },
 
     async enrollActivity(id: string): Promise<EnrollmentResponse> {
         const token = localStorage.getItem('token')
-        const res = await httpRequest<EnrollmentResponse>({
+        return await httpRequest<EnrollmentResponse>({
             method: 'post',
             url: `${API_BASE_URL}/activities/${id}/enroll`,
-            headers: { Authorization: `Bearer ${String(token || '')}` }
+            headers: {Authorization: `Bearer ${String(token || '')}`}
         })
-        return res
     },
 
     async unenrollActivity(id: string): Promise<EnrollmentResponse> {
         const token = localStorage.getItem('token')
-        const res = await httpRequest<EnrollmentResponse>({
+        return await httpRequest<EnrollmentResponse>({
             method: 'post',
             url: `${API_BASE_URL}/activities/${id}/unenroll`,
-            headers: { Authorization: `Bearer ${String(token || '')}` }
+            headers: {Authorization: `Bearer ${String(token || '')}`}
         })
-        return res
     },
 
     async fetchMyActivities(page: number = 1, pageSize: number = 10): Promise<ActivityListResponse> {
@@ -367,7 +364,7 @@ export const activityService = {
         await httpRequest<any>({
             method: 'post',
             url: `${API_BASE_URL}/activities/review_request/${id}`,
-            data: { approved, reason },
+            params: { approved, reason },
             headers: { Authorization: `Bearer ${String(token || '')}` }
         })
     },

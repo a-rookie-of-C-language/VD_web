@@ -20,10 +20,28 @@ const fetchParticipated = async () => {
   if (!userStore.studentNo.value) return
   loading.value = true
   try {
-    const res = await activityService.fetchMyStatus()
-    activities.value = res.activities || []
-    totalDuration.value = res.totalDuration || 0
-    totalActivities.value = res.totalActivities || 0
+    const [res, requests] = await Promise.all([
+      activityService.fetchMyStatus(),
+      activityService.getMyRequests()
+    ])
+    
+    const allActivities = [...(res.activities || []), ...requests]
+    // 按开始时间倒序排序
+    allActivities.sort((a, b) => {
+      const timeA = new Date(a.startTime).getTime()
+      const timeB = new Date(b.startTime).getTime()
+      return timeB - timeA
+    })
+    
+    activities.value = allActivities
+    
+    // 计算个人申请的有效时长（假设 ActivityEnded 状态为已完成）
+    const requestsDuration = requests
+      .filter(r => r.status === ActivityStatus.ActivityEnded)
+      .reduce((acc, curr) => acc + (curr.duration || 0), 0)
+
+    totalDuration.value = (res.totalDuration || 0) + requestsDuration
+    totalActivities.value = (res.totalActivities || 0) + requests.length
   } catch (e) {
     console.error(e)
     ElMessage.error('加载我的志愿数据失败')
@@ -204,7 +222,7 @@ onMounted(() => {
           <el-table-column label="活动时间" min-width="320">
             <template #default="{ row }">
               <div class="time-cell">
-                <span>{{ formatTimeRange(row.startTime, row.expectedEndTime) }}</span>
+                <span>{{ formatTimeRange(row.startTime, row.expectedEndTime || row.endTime) }}</span>
               </div>
             </template>
           </el-table-column>
@@ -253,7 +271,7 @@ onMounted(() => {
                       <span class="ml-1">{{ item.duration }} 小时</span>
                   </div>
                   <div class="item-row time-text">
-                      {{ formatTimeRange(item.startTime, item.expectedEndTime) }}
+                      {{ formatTimeRange(item.startTime, item.expectedEndTime || item.endTime) }}
                   </div>
               </div>
           </div>

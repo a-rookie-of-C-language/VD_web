@@ -148,16 +148,24 @@ onMounted(() => {
 
 <template>
   <div class="monitor-page">
-    <div class="header">
-      <h1 class="title">系统监控大屏</h1>
+    <div class="page-header">
+      <div class="header-content">
+        <h1 class="title">系统监控大屏</h1>
+        <p class="subtitle">实时监控系统运行状态，掌握志愿活动数据</p>
+      </div>
+      <div class="header-decoration">
+        <div class="circle circle-1"></div>
+        <div class="circle circle-2"></div>
+      </div>
+      
       <div class="header-controls">
-        <el-select v-model="filterClazz" placeholder="班级筛选" clearable size="default" @change="fetchMonitorData" style="width: 150px;">
+        <el-select v-model="filterClazz" placeholder="班级筛选" clearable size="default" @change="fetchMonitorData" class="filter-select">
           <el-option v-for="c in clazzOptions" :key="c" :label="c" :value="c" />
         </el-select>
-        <el-select v-model="filterGrade" placeholder="年级筛选" clearable size="default" @change="fetchMonitorData" style="width: 150px;">
+        <el-select v-model="filterGrade" placeholder="年级筛选" clearable size="default" @change="fetchMonitorData" class="filter-select">
           <el-option v-for="g in gradeOptions" :key="g" :label="g" :value="g" />
         </el-select>
-        <el-select v-model="filterCollege" placeholder="学院筛选" clearable size="default" @change="fetchMonitorData" style="width: 180px;">
+        <el-select v-model="filterCollege" placeholder="学院筛选" clearable size="default" @change="fetchMonitorData" class="filter-select">
           <el-option v-for="c in collegeOptions" :key="c" :label="c" :value="c" />
         </el-select>
       </div>
@@ -222,7 +230,7 @@ onMounted(() => {
     </el-row>
 
     <!-- User Details Table -->
-    <el-card shadow="hover" class="mb-4">
+    <el-card shadow="hover" class="list-card mb-4">
       <template #header>
         <div class="card-header">
           <span>用户详细数据</span>
@@ -287,35 +295,98 @@ onMounted(() => {
 
 <style scoped>
 .monitor-page {
+  max-width: 1200px;
+  margin: 0 auto;
   padding: 20px;
+  min-height: 80vh;
 }
 
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+/* Header */
+.page-header {
+  background: linear-gradient(135deg, #409eff 0%, #3a8ee6 100%);
+  border-radius: 16px;
+  padding: 40px;
+  margin-bottom: 30px;
+  color: white;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 10px 20px rgba(64, 158, 255, 0.2);
+}
+
+.header-content {
+  position: relative;
+  z-index: 2;
   margin-bottom: 20px;
 }
 
-.header-controls {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  flex-wrap: wrap;
+.title {
+  font-size: 32px;
+  font-weight: 700;
+  margin: 0 0 10px 0;
+  letter-spacing: 1px;
 }
 
-.title {
-  font-size: 24px;
-  font-weight: 600;
+.subtitle {
+  font-size: 16px;
+  opacity: 0.9;
   margin: 0;
+}
+
+.header-decoration .circle {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.circle-1 {
+  width: 200px;
+  height: 200px;
+  top: -50px;
+  right: -50px;
+}
+
+.circle-2 {
+  width: 100px;
+  height: 100px;
+  bottom: -20px;
+  right: 100px;
+}
+
+.header-controls {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 15px;
+  border-radius: 12px;
+  backdrop-filter: blur(5px);
+}
+
+.filter-select {
+  width: 150px;
 }
 
 .mb-4 {
   margin-bottom: 20px;
 }
 
+.list-card {
+  border-radius: 12px;
+  border: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
 .data-card {
   height: 100%;
+  border-radius: 12px;
+  border: none;
+  transition: all 0.3s;
+}
+
+.data-card:hover {
+  transform: translateY(-5px);
 }
 
 .card-content {
@@ -380,19 +451,35 @@ onMounted(() => {
 .rank-3 { background-color: #409eff; color: white; }
 
 @media (max-width: 768px) {
-  .header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
+  .monitor-page {
+    padding: 10px;
+  }
+
+  .page-header {
+    padding: 24px;
+    border-radius: 8px;
+  }
+  
+  .header-decoration {
+    display: none;
+  }
+  
+  .title {
+    font-size: 24px;
+  }
+  
+  .subtitle {
+    font-size: 14px;
   }
   
   .header-controls {
     flex-direction: column;
     width: 100%;
     align-items: stretch;
+    padding: 10px;
   }
   
-  .header-controls .el-select {
+  .filter-select {
     width: 100% !important;
   }
   

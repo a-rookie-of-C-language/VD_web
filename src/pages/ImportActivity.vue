@@ -114,6 +114,18 @@ const handleExcelRemove: UploadProps['onRemove'] = () => {
   excelFile.value = []
 }
 
+const formatDateTime = (date: Date) => {
+  const pad = (n: number) => n.toString().padStart(2, '0')
+  const year = date.getFullYear()
+  const month = pad(date.getMonth() + 1)
+  const day = pad(date.getDate())
+  const hours = pad(date.getHours())
+  const minutes = pad(date.getMinutes())
+  const seconds = pad(date.getSeconds())
+  
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}+08:00`
+}
+
 // Form Submit
 const handleFormSubmit = async () => {
   if (!formRef.value) return
@@ -135,7 +147,7 @@ const handleFormSubmit = async () => {
         name: form.name,
         type: form.type as ActivityType,
         description: form.description,
-        endTime: new Date().toISOString(), // Submission time
+        endTime: formatDateTime(new Date()), // Submission time
         duration: form.duration,
         participants: form.participants,
         coverFile: form.coverImage,
@@ -161,13 +173,18 @@ const handleCancel = () => {
 
 <template>
   <div class="import-activity-page">
-    <el-card class="page-header">
-      <h1 class="page-title">后台导入活动</h1>
-      <p class="subtitle">仅限负责人或管理员使用，可导入已有活动数据</p>
-    </el-card>
+    <div class="page-header">
+      <div class="header-content">
+        <h1 class="title">后台导入活动</h1>
+        <p class="subtitle">仅限负责人或管理员使用，可导入已有活动数据</p>
+      </div>
+      <div class="header-decoration">
+        <div class="circle circle-1"></div>
+        <div class="circle circle-2"></div>
+      </div>
+    </div>
 
-    <div class="content-container">
-      <el-card>
+    <el-card class="form-container" shadow="hover">
           <el-form
             ref="formRef"
             :model="form"
@@ -301,33 +318,72 @@ const handleCancel = () => {
               <el-button @click="handleCancel" class="action-btn">取消</el-button>
             </el-form-item>
           </el-form>
-      </el-card>
-    </div>
+    </el-card>
   </div>
 </template>
 
 <style scoped>
 .import-activity-page {
-  max-width: 900px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
+  min-height: 80vh;
 }
 
+/* Header */
 .page-header {
-  margin-bottom: 20px;
+  background: linear-gradient(135deg, #409eff 0%, #3a8ee6 100%);
+  border-radius: 16px;
+  padding: 40px;
+  margin-bottom: 30px;
+  color: white;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 10px 20px rgba(64, 158, 255, 0.2);
 }
 
-.page-title {
-  font-size: 1.5rem;
-  font-weight: 600;
-  margin: 0;
-  color: var(--el-text-color-primary);
+.header-content {
+  position: relative;
+  z-index: 2;
+}
+
+.title {
+  font-size: 32px;
+  font-weight: 700;
+  margin: 0 0 10px 0;
+  letter-spacing: 1px;
 }
 
 .subtitle {
-  color: var(--el-text-color-secondary);
-  font-size: 0.9rem;
-  margin-top: 5px;
+  font-size: 16px;
+  opacity: 0.9;
+  margin: 0;
+}
+
+.header-decoration .circle {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.circle-1 {
+  width: 200px;
+  height: 200px;
+  top: -50px;
+  right: -50px;
+}
+
+.circle-2 {
+  width: 100px;
+  height: 100px;
+  bottom: -20px;
+  right: 100px;
+}
+
+.form-container {
+  border-radius: 12px;
+  border: none;
+  padding: 20px;
 }
 
 .section-title {
@@ -387,6 +443,28 @@ const handleCancel = () => {
 @media (max-width: 768px) {
   .import-activity-page {
     padding: 10px;
+  }
+
+  .page-header {
+    padding: 24px;
+    border-radius: 8px;
+  }
+  
+  .header-decoration {
+    display: none;
+  }
+  
+  .title {
+    font-size: 24px;
+  }
+  
+  .subtitle {
+    font-size: 14px;
+  }
+  
+  .form-container {
+    padding: 10px;
+    border-radius: 8px;
   }
   
   .form-actions {

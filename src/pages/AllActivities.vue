@@ -190,13 +190,20 @@ onMounted(() => {
           @click="$router.push(`/app/activity/${activity.id}`)"
         >
           <div class="card-image-wrapper">
-            <img 
+            <el-image
               :src="activity.CoverImage || defaultActivityImage"
               :alt="activity.name"
               class="card-image"
-              loading="lazy"
-              @error="(e) => (e.target as HTMLImageElement).src = defaultActivityImage"
-            />
+              fit="cover"
+              lazy
+            >
+              <template #placeholder>
+                <div class="card-image" />
+              </template>
+              <template #error>
+                <img :src="defaultActivityImage" class="card-image" alt="" />
+              </template>
+            </el-image>
           </div>
 
           <div class="card-info">
@@ -454,17 +461,37 @@ onMounted(() => {
   .content-wrapper {
     left: 50%;
     transform: translateX(-50%);
+    width: 95%; /* Adapt width for smaller screens */
+    max-width: 1414px;
+  }
+  
+  .filter-headers {
+    width: 100%;
+    justify-content: space-around;
+  }
+  
+  .header-item {
+    width: auto;
+    flex: 1;
   }
 }
 
 @media (max-width: 1200px) {
   .activities-grid {
-    grid-template-columns: repeat(2, 370px);
+    grid-template-columns: repeat(2, 1fr);
     justify-content: center;
+    padding-left: 0;
+    gap: 30px;
+    justify-items: center;
+  }
+  
+  .activity-card {
+    width: 100%;
+    max-width: 450px;
   }
 
   .filter-headers {
-    width: 100%;
+    display: none; /* Hide fixed headers on smaller screens if they don't fit */
   }
 }
 

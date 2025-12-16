@@ -1,19 +1,19 @@
 <script setup lang="ts">
-import { useRouter, useRoute } from 'vue-router'
-import { computed, onMounted, watch, ref } from 'vue'
-import { 
-  Document, 
-  Plus, 
-  User as UserIcon, 
-  Loading, 
+import {useRouter, useRoute} from 'vue-router'
+import {computed, onMounted, watch, ref} from 'vue'
+import {
+  Document,
+  Plus,
+  User as UserIcon,
+  Loading,
   SwitchButton,
   DataLine,
   Monitor,
   Files,
   Upload
 } from '@element-plus/icons-vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { useUserStore } from '@/stores/useUserStore'
+import {ElMessage, ElMessageBox} from 'element-plus'
+import {useUserStore} from '@/stores/useUserStore'
 
 const router = useRouter()
 const route = useRoute()
@@ -42,13 +42,14 @@ interface MenuItem {
 }
 
 const allMenuItems: MenuItem[] = [
-  { index: '/app/activities', label: '活动列表', icon: Files ,roles:['user','functionary','admin','superAdmin'] },
-  { index: '/app/add-activity', label: '发布活动', icon: Plus, roles: ['functionary'] },
-  { index: '/app/import-activity', label: '后台导入', icon: Upload, roles: ['functionary', 'admin', 'superAdmin'] },
-  { index: '/app/my-projects', label: '我的项目', icon: Document, roles: ['functionary','superAdmin'] },
-  { index: '/app/my-stats', label: '我的时长', icon: DataLine },
-  { index: '/app/admin-review', label: '管理员审核', icon: Document, roles: ['admin', 'superAdmin'] },
-  { index: '/app/system-monitor', label: '系统监控', icon: Monitor, roles: ['superAdmin'] }
+  {index: '/app/activities', label: '活动列表', icon: Files},
+  {index: '/app/add-activity', label: '发布活动', icon: Plus, roles: ['functionary']},
+  {index: '/app/import-activity', label: '后台导入', icon: Upload, roles: ['functionary', 'admin', 'superAdmin']},
+  {index: '/app/my-projects', label: '我的项目', icon: Document, roles: ['functionary', 'superAdmin']},
+  {index: '/app/request-hours', label: '申请时长', icon: Document},
+  {index: '/app/admin-review', label: '管理员审核', icon: Document, roles: ['admin', 'superAdmin']},
+  {index: '/app/system-monitor', label: '系统监控', icon: Monitor, roles: ['superAdmin']},
+  {index: '/app/my-stats', label: '我的时长', icon: DataLine}
 ]
 
 const visibleMenuItems = computed(() => {
@@ -66,7 +67,7 @@ const handleLogout = async () => {
       cancelButtonText: '取消',
       type: 'warning'
     })
-    
+
     userStore.clearUser()
     ElMessage.success('已退出登录')
     await router.push('/')
@@ -104,37 +105,41 @@ watch(() => route.path, () => {
 
 <template>
   <el-menu
-    :default-active="currentPath"
-    class="sidebar-menu"
-    :mode="isMobile ? 'horizontal' : 'vertical'"
-    :ellipsis="false"
-    @select="handleSelect"
+      :default-active="currentPath"
+      class="sidebar-menu"
+      :mode="isMobile ? 'horizontal' : 'vertical'"
+      :ellipsis="false"
+      @select="handleSelect"
   >
     <div class="logo-container" v-if="!isMobile">
       <h1 class="logo-text">志愿活动管理</h1>
     </div>
-    
+
     <div class="menu-items-wrapper">
-      <el-menu-item 
-        v-for="item in visibleMenuItems" 
-        :key="item.index" 
-        :index="item.index"
-        class="custom-menu-item"
+      <el-menu-item
+          v-for="item in visibleMenuItems"
+          :key="item.index"
+          :index="item.index"
+          class="custom-menu-item"
       >
         <div class="menu-item-content">
-          <el-icon><component :is="item.icon" /></el-icon>
+          <el-icon>
+            <component :is="item.icon"/>
+          </el-icon>
           <span>{{ item.label }}</span>
         </div>
       </el-menu-item>
 
     </div>
-    
+
     <!-- User Info Section at Bottom (Desktop) -->
     <div class="user-info-container" v-if="!isMobile">
-      <el-divider />
+      <el-divider/>
       <div v-if="userStore.currentUser" class="user-info">
         <div class="user-avatar">
-          <el-icon :size="24"><UserIcon /></el-icon>
+          <el-icon :size="24">
+            <UserIcon/>
+          </el-icon>
         </div>
         <div class="user-details">
           <div class="user-name">{{ userStore.username.value }}</div>
@@ -146,57 +151,63 @@ watch(() => route.path, () => {
             {{ roleLabels[userStore.role.value || 'user'] || userStore.role.value }}
           </el-tag>
         </div>
-        <el-button 
-          :icon="SwitchButton" 
-          circle 
-          size="small" 
-          @click.stop="handleLogout"
-          title="退出登录"
-          class="logout-btn"
+        <el-button
+            :icon="SwitchButton"
+            circle
+            size="small"
+            @click.stop="handleLogout"
+            title="退出登录"
+            class="logout-btn"
         />
       </div>
       <div v-else-if="userStore.isLoading" class="user-info-loading">
-        <el-icon class="is-loading"><Loading /></el-icon>
+        <el-icon class="is-loading">
+          <Loading/>
+        </el-icon>
         <span>加载中...</span>
       </div>
       <div v-else class="user-info-placeholder">
-        <el-icon :size="20"><UserIcon /></el-icon>
+        <el-icon :size="20">
+          <UserIcon/>
+        </el-icon>
         <span>未登录</span>
       </div>
     </div>
-    
+
     <!-- Mobile User Drawer -->
     <el-drawer
-      v-model="showUserDrawer"
-      title="用户信息"
-      direction="btt"
-      size="50%"
-      :with-header="true"
-      append-to-body
-      class="mobile-user-drawer"
+        v-model="showUserDrawer"
+        title="用户信息"
+        direction="btt"
+        size="50%"
+        :with-header="true"
+        append-to-body
+        class="mobile-user-drawer"
     >
       <div class="drawer-user-content">
-         <div v-if="userStore.currentUser" class="mobile-user-info">
-            <div class="mobile-avatar">
-              <el-icon :size="50"><UserIcon /></el-icon>
-            </div>
-            <h3 class="mobile-username">{{ userStore.username.value }}</h3>
-            <p class="mobile-student-no">学号: {{ userStore.studentNo.value }}</p>
-            <el-tag :type="userStore.role.value === 'admin'
+        <div v-if="userStore.currentUser" class="mobile-user-info">
+          <div class="mobile-avatar">
+            <el-icon :size="50">
+              <UserIcon/>
+            </el-icon>
+          </div>
+          <h3 class="mobile-username">{{ userStore.username.value }}</h3>
+          <p class="mobile-student-no">学号: {{ userStore.studentNo.value }}</p>
+          <el-tag :type="userStore.role.value === 'admin'
             || userStore.role.value === 'superAdmin' ? 'danger'
             : userStore.role.value === 'functionary' ? 'warning'
             : 'info'" class="mobile-role">
-              {{ roleLabels[userStore.role.value || 'user'] || userStore.role.value }}
-            </el-tag>
-            
-            <el-button type="danger" plain class="mobile-logout-btn" @click="handleLogout" :icon="SwitchButton">
-              退出登录
-            </el-button>
-         </div>
-          <div v-else class="mobile-login-prompt">
-            <p>您尚未登录</p>
-            <el-button type="primary" @click="$router.push('/')">去登录</el-button>
-          </div>
+            {{ roleLabels[userStore.role.value || 'user'] || userStore.role.value }}
+          </el-tag>
+
+          <el-button type="danger" plain class="mobile-logout-btn" @click="handleLogout" :icon="SwitchButton">
+            退出登录
+          </el-button>
+        </div>
+        <div v-else class="mobile-login-prompt">
+          <p>您尚未登录</p>
+          <el-button type="primary" @click="$router.push('/')">去登录</el-button>
+        </div>
       </div>
     </el-drawer>
   </el-menu>
@@ -344,9 +355,9 @@ watch(() => route.path, () => {
     justify-content: center;
     border-bottom: none !important;
   }
-  
+
   :deep(.el-menu-item.is-active) {
-    border-bottom: 2px solid var(--el-color-primary) !important; 
+    border-bottom: 2px solid var(--el-color-primary) !important;
     /* Or top border if preferred since it's bottom nav */
   }
 
@@ -363,7 +374,7 @@ watch(() => route.path, () => {
     margin: 0 !important;
     font-size: 24px;
   }
-  
+
 
   :deep(.el-menu-item) span {
     font-size: 10px;

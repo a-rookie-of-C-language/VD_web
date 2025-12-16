@@ -134,11 +134,18 @@ const handleCancel = () => {
 
 <template>
   <div class="add-activity-page">
-    <el-card class="page-header">
-      <h1 class="page-title">发布新活动</h1>
-    </el-card>
+    <div class="page-header">
+      <div class="header-content">
+        <h1 class="title">发布新活动</h1>
+        <p class="subtitle">创建并发布新的志愿活动，邀请更多志愿者参与</p>
+      </div>
+      <div class="header-decoration">
+        <div class="circle circle-1"></div>
+        <div class="circle circle-2"></div>
+      </div>
+    </div>
 
-    <el-card class="form-container">
+    <el-card class="form-container" shadow="hover">
       <el-form
         ref="formRef"
         :model="form"
@@ -286,23 +293,65 @@ const handleCancel = () => {
 
 <style scoped>
 .add-activity-page {
-  max-width: 900px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
+  min-height: 80vh;
 }
 
+/* Header */
 .page-header {
-  margin-bottom: 20px;
+  background: linear-gradient(135deg, #409eff 0%, #3a8ee6 100%);
+  border-radius: 16px;
+  padding: 40px;
+  margin-bottom: 30px;
+  color: white;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 10px 20px rgba(64, 158, 255, 0.2);
 }
 
-.page-title {
-  font-size: 1.5rem;
-  font-weight: 600;
+.header-content {
+  position: relative;
+  z-index: 2;
+}
+
+.title {
+  font-size: 32px;
+  font-weight: 700;
+  margin: 0 0 10px 0;
+  letter-spacing: 1px;
+}
+
+.subtitle {
+  font-size: 16px;
+  opacity: 0.9;
   margin: 0;
-  color: var(--el-text-color-primary);
+}
+
+.header-decoration .circle {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.circle-1 {
+  width: 200px;
+  height: 200px;
+  top: -50px;
+  right: -50px;
+}
+
+.circle-2 {
+  width: 100px;
+  height: 100px;
+  bottom: -20px;
+  right: 100px;
 }
 
 .form-container {
+  border-radius: 12px;
+  border: none;
   padding: 20px;
 }
 
@@ -356,9 +405,27 @@ const handleCancel = () => {
   .add-activity-page {
     padding: 10px;
   }
+
+  .page-header {
+    padding: 24px;
+    border-radius: 8px;
+  }
+  
+  .header-decoration {
+    display: none;
+  }
+  
+  .title {
+    font-size: 24px;
+  }
+  
+  .subtitle {
+    font-size: 14px;
+  }
   
   .form-container {
     padding: 10px;
+    border-radius: 8px;
   }
   
   .cover-uploader :deep(.el-upload) {

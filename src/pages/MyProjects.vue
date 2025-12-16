@@ -546,9 +546,19 @@ onUnmounted(() => {
 
     <!-- View Details Dialog -->
     <el-dialog v-model="viewDialogVisible" title="项目详情" width="90%" class="custom-dialog">
-      <div v-if="viewActivity" class="view-content">
-        <div class="view-header">
-          <img :src="viewActivity.CoverImage" class="view-cover" v-if="viewActivity.CoverImage"/>
+        <div v-if="viewActivity" class="view-content">
+          <div class="view-header">
+          <el-image
+            v-if="viewActivity.CoverImage"
+            :src="viewActivity.CoverImage"
+            class="view-cover"
+            fit="cover"
+            lazy
+          >
+            <template #placeholder>
+              <div class="view-cover" />
+            </template>
+          </el-image>
           <div class="view-title-section">
             <h2>{{ viewActivity.name }}</h2>
             <div class="tags">
@@ -815,6 +825,7 @@ onUnmounted(() => {
   height: 120px;
   object-fit: cover;
   border-radius: 8px;
+  background-color: #f5f5f5;
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
 }
 

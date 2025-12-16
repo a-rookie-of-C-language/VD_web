@@ -131,15 +131,21 @@ onMounted(fetchData)
 
 <template>
   <div class="admin-review">
-    <el-card class="page-header">
-      <div class="title">管理员审核</div>
-      <div class="subtitle">审核项目列表</div>
-    </el-card>
+    <div class="page-header">
+      <div class="header-content">
+        <h1 class="title">管理员审核</h1>
+        <p class="subtitle">审核项目列表，管理志愿活动申请</p>
+      </div>
+      <div class="header-decoration">
+        <div class="circle circle-1"></div>
+        <div class="circle circle-2"></div>
+      </div>
+    </div>
 
-    <el-card>
+    <el-card class="list-card" shadow="hover">
       <el-tabs v-model="activeTab">
         <el-tab-pane label="普通活动审核" name="normal">
-          <el-table :data="activities" v-loading="loading" style="width:100%">
+          <el-table :data="activities" v-loading="loading" style="width:100%" class="hidden-xs-only">
             <el-table-column prop="name" label="名称" min-width="160" />
             <el-table-column label="负责人" width="120">
               <template #default="{ row }">
@@ -148,8 +154,8 @@ onMounted(fetchData)
                 </el-link>
               </template>
             </el-table-column>
-            <el-table-column prop="description" label="描述" min-width="200" />
-            <el-table-column label="操作" width="220">
+            <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip />
+            <el-table-column label="操作" width="220" fixed="right">
               <template #default="{ row }">
                 <el-button size="small" type="success" @click="approve(row)">通过</el-button>
                 <el-button size="small" type="danger" @click="reject(row)">拒绝</el-button>
@@ -158,7 +164,7 @@ onMounted(fetchData)
           </el-table>
         </el-tab-pane>
         <el-tab-pane label="导入活动审核" name="imported">
-          <el-table :data="pendingActivities" v-loading="loading" style="width:100%">
+          <el-table :data="pendingActivities" v-loading="loading" style="width:100%" class="hidden-xs-only">
             <el-table-column prop="name" label="名称" min-width="160" />
             <el-table-column label="提交人" width="120">
               <template #default="{ row }">
@@ -167,8 +173,8 @@ onMounted(fetchData)
                 </el-link>
               </template>
             </el-table-column>
-            <el-table-column prop="description" label="描述" min-width="200" />
-            <el-table-column label="操作" width="220">
+            <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip />
+            <el-table-column label="操作" width="220" fixed="right">
               <template #default="{ row }">
                 <el-button size="small" type="success" @click="approve(row)">通过</el-button>
                 <el-button size="small" type="danger" @click="reject(row)">拒绝</el-button>
@@ -177,7 +183,7 @@ onMounted(fetchData)
           </el-table>
         </el-tab-pane>
         <el-tab-pane label="个人申请审核" name="personal">
-          <el-table :data="personalRequests" v-loading="loading" style="width:100%">
+          <el-table :data="personalRequests" v-loading="loading" style="width:100%" class="hidden-xs-only">
             <el-table-column prop="name" label="名称" min-width="160" />
             <el-table-column label="申请人" width="120">
               <template #default="{ row }">
@@ -191,8 +197,8 @@ onMounted(fetchData)
                    {{ row.duration }} 小时
                </template>
             </el-table-column>
-            <el-table-column prop="description" label="描述" min-width="200" />
-            <el-table-column label="操作" width="220">
+            <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip />
+            <el-table-column label="操作" width="220" fixed="right">
               <template #default="{ row }">
                 <el-button size="small" type="success" @click="approve(row)">通过</el-button>
                 <el-button size="small" type="danger" @click="reject(row)">拒绝</el-button>
@@ -204,33 +210,38 @@ onMounted(fetchData)
 
       <!-- 移动端卡片列表 (共享) -->
       <div class="activity-card-list" v-loading="loading">
-        <div v-if="(activeTab === 'normal' ? activities : (activeTab === 'imported' ? pendingActivities : personalRequests)).length === 0" style="text-align: center; padding: 20px; color: #909399;">
+        <div v-if="(activeTab === 'normal' ? activities : (activeTab === 'imported' ? pendingActivities : personalRequests)).length === 0" class="empty-text">
           暂无审核中的项目
         </div>
-        <el-card
+        <div
           v-for="item in (activeTab === 'normal' ? activities : (activeTab === 'imported' ? pendingActivities : personalRequests))"
           :key="item.id"
-          class="activity-card"
-          shadow="hover"
+          class="activity-card-item"
         >
           <div class="card-header">
             <div class="card-title">{{ item.name }}</div>
-            <div class="card-functionary">
-              <el-link type="primary" @click="showDetail(item)">
-                {{ item.functionary }}
-              </el-link>
-            </div>
+            <el-tag size="small" effect="dark" type="warning">审核中</el-tag>
           </div>
-          <div class="card-description">{{ item.description }}</div>
+          <div class="card-body">
+             <div class="info-row">
+               <span class="label">负责人:</span>
+               <span class="value">{{ item.functionary }}</span>
+             </div>
+             <div class="info-row">
+               <span class="label">描述:</span>
+               <span class="value">{{ item.description }}</span>
+             </div>
+          </div>
           <div class="card-actions">
-            <el-button size="small" type="success" @click="approve(item)" block>通过</el-button>
-            <el-button size="small" type="danger" @click="reject(item)" block>拒绝</el-button>
+            <el-button size="small" type="success" @click="approve(item)" plain>通过</el-button>
+            <el-button size="small" type="primary" @click="showDetail(item)" plain>详情</el-button>
+            <el-button size="small" type="danger" @click="reject(item)" plain>拒绝</el-button>
           </div>
-        </el-card>
+        </div>
       </div>
     </el-card>
 
-    <el-dialog v-model="detailVisible" title="活动详情" width="90%" class="review-dialog">
+    <el-dialog v-model="detailVisible" title="活动详情" width="90%" class="review-dialog custom-dialog">
       <el-descriptions :column="1" border v-if="currentActivity">
         <el-descriptions-item label="名称">{{ currentActivity.name }}</el-descriptions-item>
         <el-descriptions-item label="负责人">
@@ -238,21 +249,26 @@ onMounted(fetchData)
         </el-descriptions-item>
         <el-descriptions-item label="类型">{{ currentActivity.type }}</el-descriptions-item>
         <el-descriptions-item label="描述">{{ currentActivity.description }}</el-descriptions-item>
-        <el-descriptions-item label="报名时间">
+        <el-descriptions-item v-if="currentActivity.EnrollmentStartTime" label="报名时间">
           {{ currentActivity.EnrollmentStartTime }} 至 {{ currentActivity.EnrollmentEndTime }}
         </el-descriptions-item>
         <el-descriptions-item label="活动时间">
           {{ currentActivity.startTime }} 至 {{ currentActivity.endTime }}
         </el-descriptions-item>
-        <el-descriptions-item label="人数限制">{{ currentActivity.maxParticipants }}</el-descriptions-item>
+        <el-descriptions-item v-if="currentActivity.maxParticipants" label="人数限制">{{ currentActivity.maxParticipants }}</el-descriptions-item>
         <el-descriptions-item label="时长">{{ currentActivity.duration }} 小时</el-descriptions-item>
         <el-descriptions-item label="封面">
-          <img 
-            v-if="currentActivity.CoverImage" 
+          <el-image
+            v-if="currentActivity.CoverImage"
             :src="currentActivity.CoverImage"
-            alt="活动封面"
-            style="max-width: 100%; max-height: 300px; object-fit: contain"
-          />
+            :preview-src-list="[currentActivity.CoverImage]"
+            fit="contain"
+            style="max-width: 100%; max-height: 300px"
+          >
+            <template #placeholder>
+              <div style="width: 100%; height: 200px; background: #f5f5f5" />
+            </template>
+          </el-image>
           <span v-else>无封面</span>
         </el-descriptions-item>
         <el-descriptions-item label="附件" v-if="currentActivity.Attachment && currentActivity.Attachment.length">
@@ -294,65 +310,159 @@ onMounted(fetchData)
 </template>
 
 <style scoped>
-.page-header { margin-bottom: 16px; }
-.title { font-weight: 600; font-size: 18px; }
-.subtitle { color: var(--el-text-color-secondary); font-size: 12px; }
+.admin-review {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  min-height: 80vh;
+}
+
+/* Header */
+.page-header {
+  background: linear-gradient(135deg, #409eff 0%, #3a8ee6 100%);
+  border-radius: 16px;
+  padding: 40px;
+  margin-bottom: 30px;
+  color: white;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 10px 20px rgba(64, 158, 255, 0.2);
+}
+
+.header-content {
+  position: relative;
+  z-index: 2;
+}
+
+.title {
+  font-size: 32px;
+  font-weight: 700;
+  margin: 0 0 10px 0;
+  letter-spacing: 1px;
+}
+
+.subtitle {
+  font-size: 16px;
+  opacity: 0.9;
+  margin: 0;
+  color: white;
+}
+
+.header-decoration .circle {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.circle-1 {
+  width: 200px;
+  height: 200px;
+  top: -50px;
+  right: -50px;
+}
+
+.circle-2 {
+  width: 100px;
+  height: 100px;
+  bottom: -20px;
+  right: 100px;
+}
+
+.list-card {
+  border-radius: 12px;
+  border: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
 .review-dialog { max-width: 700px; margin: 0 auto; }
 
-/* 卡片列表样式 */
+/* Mobile Card List */
 .activity-card-list {
   display: none;
 }
 
-.activity-card {
+.activity-card-item {
+  border: 1px solid #ebeef5;
+  border-radius: 8px;
+  padding: 16px;
   margin-bottom: 12px;
+  background: #fff;
 }
 
 .card-header {
-  margin-bottom: 12px;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f0f2f5;
 }
 
 .card-title {
   font-weight: 600;
   font-size: 16px;
-  flex: 1;
+  color: #303133;
 }
 
-.card-functionary {
-  margin-left: 12px;
-  white-space: nowrap;
-}
-
-.card-description {
-  color: var(--el-text-color-secondary);
+.info-row {
   font-size: 14px;
-  margin-bottom: 12px;
-  line-height: 1.5;
+  color: #606266;
+  margin-bottom: 6px;
+  display: flex;
+}
+
+.info-row .label {
+  color: #909399;
+  margin-right: 8px;
+  min-width: 50px;
+}
+
+.info-row .value {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .card-actions {
   display: flex;
-  gap: 8px;
+  gap: 10px;
+  margin-top: 12px;
 }
 
 .card-actions :deep(.el-button) {
   flex: 1;
 }
 
-/* 平板及小屏幕适配 */
+.empty-text {
+  text-align: center;
+  padding: 30px 0;
+  color: #909399;
+}
+
+/* Responsive */
 @media (max-width: 768px) {
-  .admin-review { padding: 12px; }
-
-  .page-header { margin-bottom: 12px; }
-  .title { font-size: 16px; }
-  .subtitle { font-size: 11px; }
-
-  /* 隐藏表格，显示卡片列表 */
-  :deep(.el-table) { display: none; }
-
+  .admin-review { padding: 10px; }
+  
+  .page-header {
+    padding: 24px;
+    border-radius: 8px;
+  }
+  
+  .header-decoration {
+    display: none;
+  }
+  
+  .title {
+    font-size: 24px;
+  }
+  
+  .subtitle {
+    font-size: 14px;
+  }
+  
+  /* Hide table, show list */
+  .hidden-xs-only { display: none !important; }
   .activity-card-list { display: block; }
 
   :deep(.el-dialog) {
@@ -375,102 +485,4 @@ onMounted(fetchData)
     margin-bottom: 4px;
   }
 }
-
-/* 手机屏幕适配 */
-@media (max-width: 480px) {
-  .admin-review { padding: 8px; }
-
-  .page-header { margin-bottom: 10px; }
-  .title { font-size: 14px; }
-  .subtitle { font-size: 10px; }
-
-  :deep(.el-card) {
-    border-radius: 4px;
-  }
-
-  :deep(.el-button) {
-    font-size: 12px !important;
-    padding: 6px 12px !important;
-  }
-
-  :deep(.el-button.is-small) {
-    font-size: 11px !important;
-    padding: 4px 8px !important;
-  }
-
-  :deep(.el-descriptions__cell) {
-    padding: 6px 8px !important;
-  }
-
-  :deep(.el-dialog) {
-    width: 98% !important;
-    margin: 0 auto !important;
-    max-height: 90vh;
-  }
-
-  :deep(.el-dialog__body) {
-    max-height: calc(90vh - 110px);
-    overflow-y: auto;
-    padding: 12px;
-  }
-
-  :deep(.el-descriptions) {
-    font-size: 12px;
-  }
-
-  :deep(.el-descriptions__label) {
-    font-size: 12px;
-  }
-
-  :deep(.el-descriptions__content) {
-    font-size: 12px;
-  }
-
-  .card-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .card-title {
-    font-size: 15px;
-    margin-bottom: 8px;
-  }
-
-  .card-functionary {
-    margin-left: 0;
-  }
-
-  .card-description {
-    font-size: 13px;
-  }
-}
-
-/* PC屏幕隐藏卡片列表 */
-@media (min-width: 769px) {
-  .activity-card-list { display: none; }
-  :deep(.el-table) { display: table; }
-}
-
-.participants-section {
-  margin-top: 20px;
-  border-top: 1px solid #ebeef5;
-  padding-top: 10px;
-}
-.participants-section h3 {
-  font-size: 16px;
-  margin-bottom: 10px;
-  color: #303133;
-}
-
-.attachment-item {
-  margin-bottom: 8px;
-}
-
-.attachment-img {
-  width: 100px;
-  height: 100px;
-  border-radius: 4px;
-  border: 1px solid #ebeef5;
-}
 </style>
-

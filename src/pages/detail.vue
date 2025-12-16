@@ -184,11 +184,20 @@ onMounted(() => {
     <div v-else-if="activity" class="content-container">
       <!-- Banner -->
       <div class="banner-section">
-        <img 
+        <el-image
           :src="activity.CoverImage || defaultActivityImage"
           class="banner-image"
-          @error="(e) => (e.target as HTMLImageElement).src = defaultActivityImage"
-         />
+          fit="cover"
+          :alt="activity.name"
+          lazy
+        >
+          <template #placeholder>
+            <div class="banner-image" />
+          </template>
+          <template #error>
+            <img :src="defaultActivityImage" class="banner-image" alt="" />
+          </template>
+        </el-image>
         <div class="banner-overlay">
           <h1 class="activity-title">{{ activity.name }}</h1>
           <div class="activity-meta">

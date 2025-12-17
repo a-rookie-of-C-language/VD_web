@@ -93,9 +93,9 @@ export const monitorService = {
             code: number
             data: { total: number, records: UserStatItem[] }
         }>({
-            method: 'get',
+            method: 'post',
             url: `${API_BASE_URL}/monitoring/user-stats`,
-            params,
+            data: params,
             headers: { Authorization: `Bearer ${String(token || '')}` }
         })
         return res.data

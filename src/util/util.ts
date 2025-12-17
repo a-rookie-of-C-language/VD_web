@@ -34,3 +34,24 @@ export const getActivityStatusLabel = (status: ActivityStatus): string => {
   }
   return statusMap[status] || String(status)
 }
+
+export const getAttachmentUrl = (path: string, type: 'download' | 'preview' = 'download'): string => {
+  if (!path) return ''
+  if (path.startsWith('http')) return path
+  
+  const baseUrl = import.meta.env.DEV
+    ? 'http://localhost:8080/api'
+    : 'https://unscreenable-cathrine-unprejudicially.ngrok-free.dev/api'
+    
+  const endpoint = type === 'preview' ? '/files/preview' : '/files/download'
+  
+  // Ensure path starts with / if not present (though backend might handle it, better safe)
+  // But wait, the previous code normalized it. 
+  // If the path from DB is "attachments/file.ext", we might need "/attachments/file.ext" if backend expects root relative.
+  // The need.md examples show path starting with /.
+  // "path": "/attachments/..."
+  
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`
+  
+  return `${baseUrl}${endpoint}?path=${encodeURIComponent(normalizedPath)}`
+}

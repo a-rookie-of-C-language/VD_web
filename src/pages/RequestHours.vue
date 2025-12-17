@@ -2,9 +2,9 @@
 import {ref, reactive, onMounted, onUnmounted} from 'vue'
 import {activityService} from '../services/activityService'
 import {ActivityType} from '../entity/ActivityType'
-import {getActivityTypeOptions} from '@/util/util'
+import {getActivityTypeOptions, getAttachmentUrl} from '@/util/util'
 import {ElMessage} from 'element-plus'
-import {Plus} from '@element-plus/icons-vue'
+import {Plus, Document} from '@element-plus/icons-vue'
 import type {UploadProps, UploadUserFile, FormInstance} from 'element-plus'
 import type {Activity} from '@/entity/Activity'
 import {ActivityStatus} from '@/entity/ActivityStatus'
@@ -118,6 +118,10 @@ const getStatusText = (status: ActivityStatus) => {
   return '已通过'
 }
 
+const getAttachments = (req: any) => {
+  return req.Attachment || req.attachment || req.attachments || []
+}
+
 const checkScreenSize = () => {
   labelPosition.value = window.innerWidth <= 768 ? 'top' : 'right'
 }
@@ -215,17 +219,16 @@ onUnmounted(() => {
                 <el-upload
                     v-model:file-list="form.files"
                     action="#"
-                    list-type="picture-card"
                     :auto-upload="false"
                     :on-change="handleFileChange"
                     :on-remove="handleRemove"
                     multiple
                 >
-                  <el-icon>
-                    <Plus/>
-                  </el-icon>
+                  <el-button type="primary">点击上传材料</el-button>
+                  <template #tip>
+                      <div class="upload-tip">请上传活动照片或相关证明文件(支持任意类型)</div>
+                  </template>
                 </el-upload>
-                <div class="upload-tip">请上传活动照片或相关证明文件</div>
               </el-form-item>
 
               <el-form-item>
@@ -258,6 +261,14 @@ onUnmounted(() => {
                   <div class="info-row desc"><span class="label">描述:</span> {{ req.description }}</div>
                   <div v-if="req.status === ActivityStatus.FailReview && req.rejectedReason" class="reject-reason">
                     <span class="label">拒绝原因:</span> {{ req.rejectedReason }}
+                  </div>
+                  <div v-if="getAttachments(req).length > 0" class="mt-2">
+                    <div class="label">附件:</div>
+                    <div v-for="(file, idx) in getAttachments(req)" :key="idx" class="attachment-link">
+                        <el-link :href="getAttachmentUrl(file)" target="_blank" type="primary" :underline="false">
+                            <el-icon><Document /></el-icon> {{ file.split('/').pop() || '查看附件' }}
+                        </el-link>
+                    </div>
                   </div>
                 </div>
               </el-card>
@@ -393,6 +404,15 @@ onUnmounted(() => {
 
 .ml-2 {
   margin-left: 8px;
+}
+
+.mt-2 {
+  margin-top: 8px;
+}
+
+.attachment-link {
+  font-size: 13px;
+  margin-top: 4px;
 }
 
 @media (max-width: 768px) {

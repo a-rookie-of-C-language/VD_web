@@ -6,7 +6,7 @@ import { ActivityType } from '../entity/ActivityType'
 import { getActivityTypeOptions } from '@/util/util'
 import { ElMessage } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
-import type { UploadProps, UploadFile } from 'element-plus'
+import type { UploadProps, UploadFile, UploadUserFile } from 'element-plus'
 import { useUserStore } from '@/stores/useUserStore'
 
 const router = useRouter()
@@ -25,6 +25,7 @@ const form = reactive({
   maxParticipants: 10,
   coverImage: null as File | null,
   duration: 0,
+  attachments: [] as UploadUserFile[],
 })
 
 const loading = ref(false)
@@ -109,7 +110,7 @@ const handleSubmit = async () => {
         startTime: formatDateTime(form.startTime),
         expectedEndTime: formatDateTime(form.extendEndTime),
         maxParticipants: form.maxParticipants,
-        attachment: [],
+        attachment: form.attachments.map(f => f.raw).filter((f): f is File => !!f),
         participants: [],
         duration: form.duration,
         coverFile: form.coverImage
@@ -208,6 +209,22 @@ const handleCancel = () => {
             <el-icon v-else class="cover-uploader-icon"><Plus /></el-icon>
           </el-upload>
           <div class="upload-tip">支持 jpg、png 格式,大小不超过 20MB</div>
+        </el-form-item>
+
+        <el-form-item label="活动附件">
+          <el-upload
+            v-model:file-list="form.attachments"
+            class="upload-demo"
+            multiple
+            :auto-upload="false"
+          >
+            <el-button type="primary">点击上传附件</el-button>
+            <template #tip>
+              <div class="el-upload__tip">
+                支持任意文件格式
+              </div>
+            </template>
+          </el-upload>
         </el-form-item>
 
         <!-- Time & Capacity Section -->

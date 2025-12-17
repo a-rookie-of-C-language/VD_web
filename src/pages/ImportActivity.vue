@@ -24,6 +24,7 @@ const form = reactive({
   type: '' as ActivityType | '',
   description: '',
   coverImage: null as File | null,
+  attachment: [] as UploadUserFile[],
   duration: 0,
   participants: [] as string[] // Selected student IDs
 })
@@ -62,7 +63,7 @@ onMounted(async () => {
     ElMessage.warning('仅负责人或管理员可以导入活动')
     await router.push('/app/activities')
   }
-  loadUsers()
+  await loadUsers()
 })
 
 onUnmounted(() => {
@@ -247,6 +248,22 @@ const handleCancel = () => {
                 <el-icon v-else class="cover-uploader-icon"><Plus /></el-icon>
               </el-upload>
               <div class="upload-tip">支持 jpg、png 格式,大小不超过 20MB</div>
+            </el-form-item>
+
+            <el-form-item label="附件">
+                <el-upload
+                    v-model:file-list="form.attachment"
+                    action="#"
+                    :auto-upload="false"
+                    multiple
+                >
+                    <el-button type="primary">点击上传附件</el-button>
+                    <template #tip>
+                        <div class="el-upload__tip">
+                            支持任意文件类型
+                        </div>
+                    </template>
+                </el-upload>
             </el-form-item>
 
             <el-form-item label="志愿时长" prop="duration">

@@ -7,7 +7,7 @@ import { activityService } from '@/services/activityService'
 import type { Activity } from '@/entity/Activity'
 import { ActivityStatus } from '@/entity/ActivityStatus'
 import { useUserStore } from '@/stores/useUserStore'
-import { getActivityTypeLabel, getActivityStatusLabel } from '@/util/util'
+import { getActivityTypeLabel, getActivityStatusLabel, getAttachmentUrl } from '@/util/util'
 import defaultActivityImage from '@/image/activity-card-bg.png'
 
 
@@ -21,6 +21,13 @@ const isEnrolled = computed(() => {
   const sn = userStore.studentNo.value
   return !!activity.value?.participants?.includes(sn)
 })
+
+const currentAttachments = computed(() => {
+  const act = activity.value as any
+  if (!act) return []
+  return act.Attachment || act.attachment || act.attachments || []
+})
+
 const canUnenroll = computed(() => {
   if (!activity.value) return false
   const endTs = activity.value.EnrollmentEndTime ? new Date(activity.value.EnrollmentEndTime).getTime() : 0
@@ -277,19 +284,23 @@ onMounted(() => {
           </el-card>
 
           <!-- Attachments -->
-          <el-card class="info-card mt-4" shadow="hover" v-if="activity.Attachment && activity.Attachment.length > 0">
+          <el-card class="info-card mt-4" shadow="hover" v-if="currentAttachments && currentAttachments.length > 0">
             <template #header>
               <div class="card-header">
                 <span>附件下载</span>
               </div>
             </template>
             <div class="attachment-list">
-              <div v-for="(_, index) in activity.Attachment" :key="index" class="attachment-item">
+              <div v-for="(file, index) in currentAttachments" :key="index" class="attachment-item">
                 <el-icon><Document /></el-icon>
-                <span class="filename">附件 {{ index + 1 }}</span>
-                <el-button link type="primary" size="small">
-                  <el-icon><Download /></el-icon> 下载
-                </el-button>
+                <el-link :href="getAttachmentUrl(file)" target="_blank" type="primary" :underline="false" class="filename">
+                  {{ file.split('/').pop() || `附件 ${index + 1}` }}
+                </el-link>
+                <el-link :href="getAttachmentUrl(file)" target="_blank" type="primary" :underline="false">
+                  <el-button link type="primary" size="small">
+                    <el-icon><Download /></el-icon> 下载
+                  </el-button>
+                </el-link>
               </div>
             </div>
           </el-card>

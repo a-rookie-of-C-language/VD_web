@@ -64,6 +64,11 @@ const routes: Array<RouteRecordRaw> = [
                 component: () => import('../pages/SystemMonitor.vue')
             },
             {
+                path: 'suggestion-box',
+                name: 'SuggestionBox',
+                component: () => import('../pages/SuggestionBox.vue')
+            },
+            {
                 path: 'activity/:id',
                 name: 'ActivityDetail',
                 component: () => import('../pages/detail.vue')
@@ -79,6 +84,7 @@ const routes: Array<RouteRecordRaw> = [
     { path: '/request-hours', redirect: '/app/request-hours' },
     { path: '/admin-review', redirect: '/app/admin-review' },
     { path: '/system-monitor', redirect: '/app/system-monitor' },
+    { path: '/suggestion-box', redirect: '/app/suggestion-box' },
     { path: '/activity/:id', redirect: to => `/app/activity/${to.params.id}` }
 ]
 

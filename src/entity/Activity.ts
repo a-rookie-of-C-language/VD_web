@@ -14,7 +14,9 @@ export interface Activity {
     endTime: string
     CoverImage: string
     maxParticipants: number
-    Attachment: string[]
+    Attachment?: string[]
+    attachment?: string[]
+    attachments?: string[]
     participants: string[]
     status: ActivityStatus
     isFull: boolean

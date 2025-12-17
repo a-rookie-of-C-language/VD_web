@@ -3,7 +3,9 @@ import type {Activity} from '@/entity/Activity'
 import type {ActivityStatus} from '@/entity/ActivityStatus'
 import type {ActivityType} from '@/entity/ActivityType'
 
-const API_BASE_URL = 'https://unscreenable-cathrine-unprejudicially.ngrok-free.dev/api'
+const API_BASE_URL = import.meta.env.DEV
+    ? 'http://localhost:8080/api'
+    : 'https://unscreenable-cathrine-unprejudicially.ngrok-free.dev/api'
 
 export interface ActivityListParams {
     page?: number
@@ -38,10 +40,10 @@ export const activityService = {
             message: string;
             data: ActivityListResponse
         }>({
-            method: 'get',
-            url: `${API_BASE_URL}/activities`,
-            params,
-            headers: { Authorization: `Bearer ${String(token || '')}` }
+            method: 'post',
+            url: `${API_BASE_URL}/activities/query`,
+            data: params,
+            headers: {Authorization: `Bearer ${String(token || '')}`}
         })
         return res.data
     },
@@ -59,7 +61,7 @@ export const activityService = {
             }>({
                 method: 'get',
                 url: `${API_BASE_URL}/activities/${id}`,
-                headers: { Authorization: `Bearer ${String(token || '')}` }
+                headers: {Authorization: `Bearer ${String(token || '')}`}
             })
             if (res.code === 200 && res.data) {
                 return res.data
@@ -72,7 +74,7 @@ export const activityService = {
         // Try fetching with larger page sizes
         for (let pageSize of [500, 1000]) {
             try {
-                const response = await this.getActivities({ pageSize })
+                const response = await this.getActivities({pageSize})
                 const found = response.items.find(a => a.id === id)
                 if (found) return found
             } catch (error) {
@@ -100,7 +102,7 @@ export const activityService = {
             activity.participants.forEach((p: string) => formData.append('participants[]', p))
         }
         if (activity.attachment && Array.isArray(activity.attachment)) {
-            activity.attachment.forEach((a: string) => formData.append('attachment[]', a))
+            activity.attachment.forEach((a: any) => formData.append('attachment', a))
         }
         if (activity.coverFile) {
             formData.append('coverFile', activity.coverFile)
@@ -110,7 +112,7 @@ export const activityService = {
             method: 'post',
             url: `${API_BASE_URL}/activities`,
             data: formData,
-            headers: { Authorization: `Bearer ${String(token || '')}` }
+            headers: {Authorization: `Bearer ${String(token || '')}`}
         })
         return res.data
     },
@@ -129,7 +131,7 @@ export const activityService = {
         if (activity.coverFile) formData.append('coverFile', activity.coverFile)
         if (activity.file) formData.append('file', activity.file)
         if (activity.attachment && Array.isArray(activity.attachment)) {
-            activity.attachment.forEach((a: string) => formData.append('attachment[]', a))
+            activity.attachment.forEach((a: string) => formData.append('attachmentFiles', a))
         }
 
         const token = localStorage.getItem('token')
@@ -165,7 +167,7 @@ export const activityService = {
             method: 'get',
             url: `${API_BASE_URL}/pending-activities`,
             params,
-            headers: { Authorization: `Bearer ${String(token || '')}` }
+            headers: {Authorization: `Bearer ${String(token || '')}`}
         })
         return res.data
     },
@@ -179,7 +181,7 @@ export const activityService = {
         }>({
             method: 'get',
             url: `${API_BASE_URL}/pending-activities/${id}`,
-            headers: { Authorization: `Bearer ${String(token || '')}` }
+            headers: {Authorization: `Bearer ${String(token || '')}`}
         })
         return res.data
     },
@@ -193,7 +195,7 @@ export const activityService = {
         }>({
             method: 'post',
             url: `${API_BASE_URL}/pending-activities/${id}/approve`,
-            headers: { Authorization: `Bearer ${String(token || '')}` }
+            headers: {Authorization: `Bearer ${String(token || '')}`}
         })
         return res.data
     },
@@ -206,8 +208,8 @@ export const activityService = {
         }>({
             method: 'post',
             url: `${API_BASE_URL}/pending-activities/${id}/reject`,
-            params: { reason },
-            headers: { Authorization: `Bearer ${String(token || '')}` }
+            params: {reason},
+            headers: {Authorization: `Bearer ${String(token || '')}`}
         })
     },
 
@@ -219,7 +221,7 @@ export const activityService = {
         }>({
             method: 'delete',
             url: `${API_BASE_URL}/pending-activities/${id}`,
-            headers: { Authorization: `Bearer ${String(token || '')}` }
+            headers: {Authorization: `Bearer ${String(token || '')}`}
         })
     },
 
@@ -241,7 +243,7 @@ export const activityService = {
             activity.participants.forEach((p: string) => formData.append('participants[]', p))
         }
         if (activity.Attachment && Array.isArray(activity.Attachment)) {
-            activity.Attachment.forEach((a: string) => formData.append('attachment[]', a))
+            activity.Attachment.forEach((a: any) => formData.append('attachment', a))
         }
         if (coverFile) {
             formData.append('coverFile', coverFile)
@@ -251,7 +253,7 @@ export const activityService = {
             method: 'put',
             url: `${API_BASE_URL}/activities/${id}`,
             data: formData,
-            headers: { Authorization: `Bearer ${String(token || '')}` }
+            headers: {Authorization: `Bearer ${String(token || '')}`}
         })
         return res.data
     },
@@ -288,21 +290,21 @@ export const activityService = {
         const res = await httpRequest<{ code: number; message: string; data: ActivityListResponse }>({
             method: 'get',
             url: `${API_BASE_URL}/activities/MyActivities`,
-            params: { page, pageSize },
-            headers: { Authorization: `Bearer ${String(token || '')}` }
+            params: {page, pageSize},
+            headers: {Authorization: `Bearer ${String(token || '')}`}
         })
         return res.data
     },
 
     async reviewActivity(id: string, approve: boolean, reason?: string): Promise<Activity> {
         const token = localStorage.getItem('token')
-        const params: any = { approve }
+        const params: any = {approve}
         if (reason) params.reason = reason
         const res = await httpRequest<{ code: number; message: string; data: Activity }>({
             method: 'post',
             url: `${API_BASE_URL}/activities/${id}/review`,
             params,
-            headers: { Authorization: `Bearer ${String(token || '')}` }
+            headers: {Authorization: `Bearer ${String(token || '')}`}
         })
         return res.data
     },
@@ -316,7 +318,7 @@ export const activityService = {
         }>({
             method: 'get',
             url: `${API_BASE_URL}/activities/MyStatus`,
-            headers: { Authorization: `Bearer ${String(token || '')}` }
+            headers: {Authorization: `Bearer ${String(token || '')}`}
         })
         return res.data
     },
@@ -333,7 +335,9 @@ export const activityService = {
         if (data.endTime) formData.append('endTime', data.endTime)
         if (data.duration) formData.append('duration', String(data.duration))
         if (data.files && Array.isArray(data.files)) {
-            data.files.forEach((f: File) => formData.append('files[]', f))
+            data.files.forEach((f: File) => {
+                if (f) formData.append('files', f)
+            })
         }
 
         const token = localStorage.getItem('token')
@@ -352,7 +356,7 @@ export const activityService = {
         const res = await httpRequest<{ data: { items: Activity[] } }>({
             method: 'get',
             url: `${API_BASE_URL}/activities/pending_requests`,
-            headers: { Authorization: `Bearer ${String(token || '')}` }
+            headers: {Authorization: `Bearer ${String(token || '')}`}
         })
         return res.data.items || []
     },
@@ -362,8 +366,8 @@ export const activityService = {
         await httpRequest<any>({
             method: 'post',
             url: `${API_BASE_URL}/activities/review_request/${id}`,
-            params: { approved, reason },
-            headers: { Authorization: `Bearer ${String(token || '')}` }
+            params: {approved, reason},
+            headers: {Authorization: `Bearer ${String(token || '')}`}
         })
     },
 
@@ -372,7 +376,7 @@ export const activityService = {
         const res = await httpRequest<{ data: { items: Activity[] } }>({
             method: 'get',
             url: `${API_BASE_URL}/activities/my_requests`,
-            headers: { Authorization: `Bearer ${String(token || '')}` }
+            headers: {Authorization: `Bearer ${String(token || '')}`}
         })
         return res.data.items || []
     }

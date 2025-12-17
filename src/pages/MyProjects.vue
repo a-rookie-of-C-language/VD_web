@@ -10,7 +10,7 @@ import {ActivityType} from '@/entity/ActivityType'
 import {useUserStore} from '@/stores/useUserStore'
 import {userService} from '@/services/userService'
 import dayjs from 'dayjs'
-import { getActivityTypeLabel, getActivityStatusLabel } from '@/util/util'
+import { getActivityTypeLabel, getActivityStatusLabel, getAttachmentUrl } from '@/util/util'
 
 const userStore = useUserStore()
 const activities = ref<Activity[]>([])
@@ -204,6 +204,12 @@ const submitSettlement = async () => {
 const viewDialogVisible = ref(false)
 const viewActivity = ref<Activity | null>(null)
 const nameMap = ref<Record<string, string>>({})
+
+const viewAttachments = computed(() => {
+  const act = viewActivity.value as any
+  if (!act) return []
+  return act.Attachment || act.attachment || act.attachments || []
+})
 
 const openView = (a: Activity) => {
   viewActivity.value = a
@@ -514,6 +520,7 @@ onUnmounted(() => {
                 />
                 <el-date-picker
                   v-model="editForm.endTime"
+                  disabled
                   type="datetime"
                   placeholder="实际结束时间"
                   style="width: 100%"
@@ -584,6 +591,13 @@ onUnmounted(() => {
           </el-descriptions-item>
           <el-descriptions-item label="拒绝原因" :span="2" v-if="viewActivity.status === ActivityStatus.FailReview && viewActivity.rejectedReason">
             <span class="text-danger">{{ viewActivity.rejectedReason }}</span>
+          </el-descriptions-item>
+          <el-descriptions-item label="附件" :span="2" v-if="viewAttachments && viewAttachments.length > 0">
+            <div v-for="(file, index) in viewAttachments" :key="index" class="attachment-link">
+               <el-link :href="getAttachmentUrl(file)" target="_blank" type="primary" :underline="false">
+                 <el-icon><Document /></el-icon> {{ file.split('/').pop() || '下载附件' }}
+               </el-link>
+            </div>
           </el-descriptions-item>
         </el-descriptions>
 
@@ -667,6 +681,9 @@ onUnmounted(() => {
 .text-danger {
   color: #f56c6c;
   font-weight: bold;
+}
+.attachment-link {
+  margin-bottom: 4px;
 }
 .my-projects-page {
   max-width: 1200px;

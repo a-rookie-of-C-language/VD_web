@@ -10,7 +10,10 @@ import {
   DataLine,
   Monitor,
   Files,
-  Upload
+  Upload,
+  ChatDotRound,
+  Calendar,
+  DocumentAdd
 } from '@element-plus/icons-vue'
 import {ElMessage, ElMessageBox} from 'element-plus'
 import {useUserStore} from '@/stores/useUserStore'
@@ -47,6 +50,7 @@ const allMenuItems: MenuItem[] = [
   {index: '/app/import-activity', label: '后台导入', icon: Upload, roles: ['functionary', 'admin', 'superAdmin']},
   {index: '/app/my-projects', label: '我的项目', icon: Document, roles: ['functionary', 'superAdmin']},
   {index: '/app/request-hours', label: '申请时长', icon: Document},
+  {index: '/app/suggestion-box', label: '意见反馈', icon: ChatDotRound},
   {index: '/app/admin-review', label: '管理员审核', icon: Document, roles: ['admin', 'superAdmin']},
   {index: '/app/system-monitor', label: '系统监控', icon: Monitor, roles: ['superAdmin']},
   {index: '/app/my-stats', label: '我的时长', icon: DataLine}
@@ -343,6 +347,8 @@ watch(() => route.path, () => {
     flex-direction: row;
     width: 100%;
     justify-content: space-between;
+    overflow-x: auto; /* Allow scrolling if too many items */
+    -webkit-overflow-scrolling: touch;
   }
 
   /* Force override Element Plus menu item styles */
@@ -350,7 +356,8 @@ watch(() => route.path, () => {
     height: 60px !important;
     line-height: normal !important;
     padding: 0 4px !important;
-    flex: 1;
+    flex: 0 0 auto; /* Don't shrink, allow scrolling */
+    min-width: 60px; /* Minimum touch target width */
     display: flex;
     justify-content: center;
     border-bottom: none !important;

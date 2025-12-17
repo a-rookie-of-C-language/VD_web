@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { activityService } from '@/services/activityService'
 import { userService } from '@/services/userService'
 import type { Activity } from '@/entity/Activity'
 import { ActivityStatus } from '@/entity/ActivityStatus'
+import { getAttachmentUrl } from '@/util/util'
 
 const activeTab = ref('normal')
 const loading = ref(false)
@@ -64,6 +65,13 @@ watch(activeTab, fetchData)
 
 const detailVisible = ref(false)
 const currentActivity = ref<Activity | null>(null)
+
+const currentAttachments = computed(() => {
+  const act = currentActivity.value as any
+  if (!act) return []
+  return act.Attachment || act.attachment || act.attachments || []
+})
+
 const nameMap = ref<Record<string, string>>({})
 
 const showDetail = (a: Activity) => {
@@ -271,19 +279,19 @@ onMounted(fetchData)
           </el-image>
           <span v-else>无封面</span>
         </el-descriptions-item>
-        <el-descriptions-item label="附件" v-if="currentActivity.Attachment && currentActivity.Attachment.length">
-          <div v-for="(file, index) in currentActivity.Attachment" :key="index" class="attachment-item">
+        <el-descriptions-item label="附件" v-if="currentAttachments.length">
+          <div v-for="(file, index) in currentAttachments" :key="index" class="attachment-item">
             <template v-if="file.match(/\.(jpg|jpeg|png|gif|bmp|webp)$/i)">
                <el-image 
-                 :src="file" 
-                 :preview-src-list="[file]" 
+                 :src="getAttachmentUrl(file, 'preview')" 
+                 :preview-src-list="[getAttachmentUrl(file, 'preview')]" 
                  fit="cover" 
                  class="attachment-img"
                  hide-on-click-modal
                />
             </template>
             <template v-else>
-               <el-link :href="file" target="_blank" type="primary">{{ file.split('/').pop() || '下载附件' }}</el-link>
+               <el-link :href="getAttachmentUrl(file)" target="_blank" type="primary">{{ file.split('/').pop() || '下载附件' }}</el-link>
             </template>
           </div>
         </el-descriptions-item>
@@ -372,6 +380,31 @@ onMounted(fetchData)
   border-radius: 12px;
   border: none;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.attachment-item {
+  margin-bottom: 10px;
+}
+
+.attachment-img {
+  max-width: 100px;
+  max-height: 100px;
+  border-radius: 4px;
+  border: 1px solid #eee;
+  display: block;
+}
+
+.img-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.file-name {
+  font-size: 12px;
+  color: #606266;
+  margin-top: 4px;
+  word-break: break-all;
 }
 
 .review-dialog { max-width: 700px; margin: 0 auto; }

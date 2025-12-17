@@ -110,7 +110,7 @@ export const activityService = {
             method: 'post',
             url: `${API_BASE_URL}/activities`,
             data: formData,
-            headers: { 'Content-Type': 'multipart/form-data', Authorization: `Bearer ${String(token || '')}` }
+            headers: { Authorization: `Bearer ${String(token || '')}` }
         })
         return res.data
     },
@@ -142,7 +142,6 @@ export const activityService = {
             url: `${API_BASE_URL}/activities/import`,
             data: formData,
             headers: {
-                'Content-Type': 'multipart/form-data',
                 Authorization: `Bearer ${String(token || '')}`
             }
         })
@@ -252,7 +251,7 @@ export const activityService = {
             method: 'put',
             url: `${API_BASE_URL}/activities/${id}`,
             data: formData,
-            headers: { 'Content-Type': 'multipart/form-data', Authorization: `Bearer ${String(token || '')}` }
+            headers: { Authorization: `Bearer ${String(token || '')}` }
         })
         return res.data
     },
@@ -343,7 +342,6 @@ export const activityService = {
             url: `${API_BASE_URL}/activities/request_hours`,
             data: formData,
             headers: {
-                'Content-Type': 'multipart/form-data',
                 Authorization: `Bearer ${String(token || '')}`
             }
         })

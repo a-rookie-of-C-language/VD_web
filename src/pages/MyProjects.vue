@@ -10,7 +10,8 @@ import {ActivityType} from '@/entity/ActivityType'
 import {useUserStore} from '@/stores/useUserStore'
 import {userService} from '@/services/userService'
 import dayjs from 'dayjs'
-import { getActivityTypeLabel, getActivityStatusLabel, getAttachmentUrl } from '@/util/util'
+import { getActivityTypeLabel, getActivityStatusLabel, getAttachmentUrl, getCoverImageUrl } from '@/util/util'
+import PageHeader from '@/components/PageHeader.vue'
 
 const userStore = useUserStore()
 const activities = ref<Activity[]>([])
@@ -69,7 +70,6 @@ const handlePageChange = (page: number) => {
   fetchMine()
 }
 
-// --- Edit Logic ---
 const editDialogVisible = ref(false)
 const editing = ref<Activity | null>(null)
 const editForm = ref<Activity | null>(null)
@@ -155,7 +155,6 @@ const resubmit = async (a: Activity) => {
   }
 }
 
-// --- Settlement Logic ---
 const settlementDialogVisible = ref(false)
 const settlementActivity = ref<Activity | null>(null)
 const settlementParticipants = ref<{id: string, username: string}[]>([])
@@ -163,7 +162,6 @@ const selectedParticipants = ref<string[]>([])
 
 const openSettlement = async (a: Activity) => {
   settlementActivity.value = a
-  // Prepare participants list with names
   const ids = a.participants || []
   settlementParticipants.value = await Promise.all(ids.map(async (id) => {
     let username = nameMap.value[id]
@@ -174,7 +172,6 @@ const openSettlement = async (a: Activity) => {
     }
     return {id, username}
   }))
-  // Default select all
   selectedParticipants.value = ids
   settlementDialogVisible.value = true
 }
@@ -200,7 +197,6 @@ const submitSettlement = async () => {
   }
 }
 
-// --- View Details Logic ---
 const viewDialogVisible = ref(false)
 const viewActivity = ref<Activity | null>(null)
 const nameMap = ref<Record<string, string>>({})
@@ -240,19 +236,8 @@ onUnmounted(() => {
 
 <template>
   <div class="my-projects-page">
-    <!-- Header Section -->
-    <div class="page-header">
-      <div class="header-content">
-        <h1 class="title">我的项目</h1>
-        <p class="subtitle">管理您发布的所有志愿活动项目</p>
-      </div>
-      <div class="header-decoration">
-        <div class="circle circle-1"></div>
-        <div class="circle circle-2"></div>
-      </div>
-    </div>
+    <PageHeader title="我的项目" subtitle="管理您发布的所有志愿活动项目" />
 
-    <!-- Actions Bar -->
     <div class="actions-bar">
       <div class="left">
         <el-input
@@ -268,9 +253,7 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <!-- Content Section -->
     <el-card class="list-card" shadow="hover">
-      <!-- Desktop Table -->
       <div class="hidden-xs-only">
         <el-table 
           :data="filtered" 
@@ -292,17 +275,17 @@ onUnmounted(() => {
           
           <el-table-column label="类型" width="120">
             <template #default="{ row }">
-              <el-tag effect="plain" round>{{ getTypeText(row.type) }}</el-tag>
+              <el-tag effect="plain" round>{{ getTypeText(row.activityType) }}</el-tag>
             </template>
           </el-table-column>
 
           <el-table-column label="状态" width="120">
             <template #default="{ row }">
               <el-tooltip
-                v-if="row.status === ActivityStatus.FailReview && row.rejectedReason"
+                v-if="row.status === ActivityStatus.FailReview && (row.rejectedReason || row.reviewReason)"
                 class="box-item"
                 effect="dark"
-                :content="'拒绝原因: ' + row.rejectedReason"
+                :content="'拒绝原因: ' + (row.rejectedReason || row.reviewReason)"
                 placement="top"
               >
                 <el-tag :type="statusType(row.status)" effect="dark" size="small" style="cursor: help">{{ statusText(row.status) }}</el-tag>
@@ -374,7 +357,6 @@ onUnmounted(() => {
         </el-table>
       </div>
 
-      <!-- Mobile Card List -->
       <div class="visible-xs-only mobile-list">
         <div v-for="row in filtered" :key="row.id" class="mobile-project-card">
           <div class="card-header">
@@ -439,7 +421,6 @@ onUnmounted(() => {
       </div>
     </el-card>
 
-    <!-- Edit Dialog -->
     <el-dialog v-model="editDialogVisible" title="修改项目" width="90%" destroy-on-close class="custom-dialog">
       <div v-if="editForm" class="dialog-content">
         <el-form :model="editForm" label-width="100px" label-position="top">
@@ -551,21 +532,20 @@ onUnmounted(() => {
       </template>
     </el-dialog>
 
-    <!-- View Details Dialog -->
     <el-dialog v-model="viewDialogVisible" title="项目详情" width="90%" class="custom-dialog">
         <div v-if="viewActivity" class="view-content">
           <div class="view-header">
-          <el-image
-            v-if="viewActivity.CoverImage"
-            :src="viewActivity.CoverImage"
-            class="view-cover"
-            fit="cover"
-            lazy
-          >
-            <template #placeholder>
-              <div class="view-cover" />
-            </template>
-          </el-image>
+  <el-image
+    v-if="viewActivity.CoverImage"
+    :src="getCoverImageUrl(viewActivity.CoverImage)"
+    class="view-cover"
+    fit="cover"
+    lazy
+  >
+    <template #placeholder>
+      <div class="view-cover" />
+    </template>
+  </el-image>
           <div class="view-title-section">
             <h2>{{ viewActivity.name }}</h2>
             <div class="tags">
@@ -589,8 +569,10 @@ onUnmounted(() => {
           <el-descriptions-item label="项目描述" :span="2">
             {{ viewActivity.description }}
           </el-descriptions-item>
-          <el-descriptions-item label="拒绝原因" :span="2" v-if="viewActivity.status === ActivityStatus.FailReview && viewActivity.rejectedReason">
-            <span class="text-danger">{{ viewActivity.rejectedReason }}</span>
+          <el-descriptions-item label="拒绝原因" :span="2" v-if="viewActivity.status === ActivityStatus.FailReview && (viewActivity.rejectedReason || viewActivity.reviewReason)">
+            <el-alert type="error" :closable="false" show-icon>
+              {{ viewActivity.rejectedReason || viewActivity.reviewReason }}
+            </el-alert>
           </el-descriptions-item>
           <el-descriptions-item label="附件" :span="2" v-if="viewAttachments && viewAttachments.length > 0">
             <div v-for="(file, index) in viewAttachments" :key="index" class="attachment-link">
@@ -638,7 +620,6 @@ onUnmounted(() => {
       </div>
     </el-dialog>
 
-    <!-- Settlement Dialog -->
     <el-dialog v-model="settlementDialogVisible" title="活动结算" width="90%" class="custom-dialog">
       <div v-if="settlementActivity">
         <el-alert
@@ -678,143 +659,56 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-.text-danger {
-  color: #f56c6c;
-  font-weight: bold;
-}
-.attachment-link {
-  margin-bottom: 4px;
-}
+.text-danger { color: var(--danger-500); font-weight: bold; }
+.reject-reason { margin-top: 8px; padding-top: 8px; border-top: 1px dashed #e2e8f0; }
+.attachment-link { margin-bottom: 6px; display: block; }
 .my-projects-page {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 30px 5%;
   min-height: 80vh;
+  animation: fadeUp 0.5s ease;
 }
-
-/* Header */
-.page-header {
-  background: linear-gradient(135deg, #409eff 0%, #3a8ee6 100%);
-  border-radius: 16px;
-  padding: 40px;
-  margin-bottom: 30px;
-  color: white;
-  position: relative;
-  overflow: hidden;
-  box-shadow: 0 10px 20px rgba(64, 158, 255, 0.2);
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
-
-.header-content {
-  position: relative;
-  z-index: 2;
-}
-
-.title {
-  font-size: 32px;
-  font-weight: 700;
-  margin: 0 0 10px 0;
-  letter-spacing: 1px;
-}
-
-.subtitle {
-  font-size: 16px;
-  opacity: 0.9;
-  margin: 0;
-}
-
-.header-decoration .circle {
-  position: absolute;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.circle-1 {
-  width: 200px;
-  height: 200px;
-  top: -50px;
-  right: -50px;
-}
-
-.circle-2 {
-  width: 100px;
-  height: 100px;
-  bottom: -20px;
-  right: 100px;
-}
-
-/* Actions Bar */
 .actions-bar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 16px 20px;
+  border-radius: 16px;
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
 }
-
-.search-input {
-  width: 300px;
-}
-
-/* List Card */
+.search-input { width: 320px; }
+.search-input :deep(.el-input__wrapper) { border-radius: 20px; }
 .list-card {
-  border-radius: 12px;
-  border: none;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border-radius: 20px;
+  border: none !important;
+  box-shadow: 0 10px 30px -5px rgba(0,0,0,0.08);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
 }
-
-.project-name-cell {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+.project-name-cell { display: flex; align-items: center; gap: 14px; }
+.project-cover { 
+  background: linear-gradient(135deg, var(--brand-50), var(--brand-100)); 
+  color: var(--brand-400); 
+  border-radius: 10px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
 }
-
-.project-cover {
-  background-color: #f0f2f5;
-  color: #909399;
-}
-
-.name-text {
-  font-weight: 500;
-  color: #303133;
-}
-
-.participants-info {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  color: #606266;
-  margin-bottom: 4px;
-}
-
-.participants-progress {
-  width: 90%;
-}
-
-.time-cell {
-  font-size: 12px;
-  color: #606266;
-}
-
-.time-row {
-  margin-bottom: 2px;
-}
-
-.time-row .label {
-  color: #909399;
-  margin-right: 4px;
-}
-
-.action-buttons {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-/* Dialog Styles */
-.cover-uploader {
-  width: 100%;
-}
-
+.name-text { font-weight: 600; color: #1e293b; font-size: 15px; }
+.participants-info { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #475569; margin-bottom: 6px; font-weight: 500; }
+.participants-progress { width: 95%; }
+.participants-progress :deep(.el-progress-bar__outer) { background-color: #e2e8f0; }
+.time-cell { font-size: 13px; color: #475569; line-height: 1.6; }
+.time-row { margin-bottom: 2px; }
+.time-row .label { color: #94a3b8; margin-right: 6px; font-weight: 500; }
+.action-buttons { display: flex; gap: 10px; flex-wrap: wrap; }
+.action-buttons .el-button { padding: 4px 10px; border-radius: 6px; }
+.cover-uploader { width: 100%; }
 .cover-uploader :deep(.el-upload-dragger) {
   width: 100%;
   height: 200px;
@@ -822,206 +716,88 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  border-radius: 16px;
+  border: 2px dashed #cbd5e1;
+  background: #f8fafc;
+  transition: all 0.3s ease;
 }
-
-.cover-image {
-  width: 100%;
-  height: 200px;
-  object-fit: cover;
-  border-radius: 6px;
+.cover-uploader :deep(.el-upload-dragger:hover) {
+  border-color: var(--brand-500);
+  background: #f0f9ff;
 }
-
-.view-header {
-  display: flex;
-  gap: 20px;
-  margin-bottom: 20px;
-}
-
+.cover-image { width: 100%; height: 200px; object-fit: cover; border-radius: 12px; }
+.upload-placeholder .el-icon--upload { font-size: 48px; color: var(--brand-400); margin-bottom: 16px; }
+.upload-placeholder .el-upload__text { color: #64748b; }
+.view-header { display: flex; gap: 24px; margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid #f1f5f9; }
 .view-cover {
-  width: 120px;
-  height: 120px;
+  width: 140px;
+  height: 140px;
   object-fit: cover;
-  border-radius: 8px;
-  background-color: #f5f5f5;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  border-radius: 16px;
+  background: #f8fafc;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
 }
-
-.view-title-section h2 {
-  margin: 0 0 12px 0;
-  font-size: 20px;
-}
-
-.view-title-section .tags {
-  display: flex;
-  gap: 8px;
-}
-
-.mt-4 {
-  margin-top: 16px;
-}
-
+.view-title-section { display: flex; flex-direction: column; justify-content: center; }
+.view-title-section h2 { margin: 0 0 16px 0; font-size: 24px; color: #1e293b; font-weight: 800; }
+.view-title-section .tags { display: flex; gap: 10px; }
 .section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
-  border-bottom: 1px solid #ebeef5;
-  padding-bottom: 8px;
+  margin-bottom: 16px;
+  border-bottom: 2px solid #f1f5f9;
+  padding-bottom: 12px;
 }
-
-.section-header h3 {
-  margin: 0;
-  font-size: 16px;
-  color: #303133;
-}
-
-.section-header .count {
-  font-size: 14px;
-  color: #909399;
-}
-
-.student-cell {
-  display: flex;
-  align-items: center;
-}
-
-.ml-2 {
-  margin-left: 8px;
-}
-
-.custom-dialog {
-  max-width: 800px; 
-}
-
+.section-header h3 { margin: 0; font-size: 18px; color: #1e293b; font-weight: 700; }
+.section-header .count { font-size: 14px; color: #64748b; font-weight: 500; background: #f1f5f9; padding: 2px 10px; border-radius: 12px; }
+.student-cell { display: flex; align-items: center; font-weight: 500; }
+.custom-dialog :deep(.el-dialog) { border-radius: 20px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
+.custom-dialog :deep(.el-dialog__header) { padding: 20px 24px; margin: 0; background: #f8fafc; border-bottom: 1px solid #e2e8f0; }
+.custom-dialog :deep(.el-dialog__title) { font-weight: 700; color: #1e293b; font-size: 18px; }
+.custom-dialog :deep(.el-dialog__body) { padding: 24px; }
+.custom-dialog :deep(.el-dialog__footer) { padding: 16px 24px; border-top: 1px solid #e2e8f0; background: #f8fafc; }
+.empty-text { text-align: center; color: #64748b; padding: 40px; background-color: #f8fafc; border-radius: 12px; font-weight: 500; }
+.pagination-container { display: flex; justify-content: center; padding: 30px 0 10px; }
+.mt-4 { margin-top: 24px; }
+.ml-2 { margin-left: 8px; }
 @media (max-width: 768px) {
-  .my-projects-page {
-    padding: 10px;
-  }
-
-  .page-header {
+  .my-projects-page { padding: 16px; }
+  .actions-bar { flex-direction: column; align-items: stretch; gap: 12px; padding: 16px; }
+  .search-input { width: 100%; }
+  .view-header { flex-direction: column; align-items: center; text-align: center; }
+  .view-cover { margin-bottom: 12px; width: 120px; height: 120px; }
+  .view-title-section .tags { justify-content: center; }
+  .mobile-list { display: flex; flex-direction: column; gap: 16px; }
+  .mobile-project-card {
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
     padding: 20px;
-    border-radius: 8px;
+    background: #ffffff;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
   }
-  
-  .header-decoration {
-    display: none;
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+    border-bottom: 1px solid #f1f5f9;
+    padding-bottom: 12px;
   }
-  
-  .title {
-    font-size: 24px;
-  }
-  
-  .actions-bar {
-    flex-direction: column;
-    align-items: stretch;
+  .card-title { font-weight: 700; font-size: 16px; color: #1e293b; line-height: 1.4; margin-right: 12px; }
+  .card-body { font-size: 14px; color: #475569; }
+  .card-row { margin-bottom: 10px; display: flex; align-items: center; }
+  .card-row.timer-row { font-size: 13px; margin-top: 12px; padding-top: 12px; border-top: 1px dashed #e2e8f0; color: #64748b; }
+  .card-row .label { font-weight: 600; margin-right: 8px; min-width: 44px; color: #94a3b8; }
+  .card-actions {
+    display: flex;
+    justify-content: flex-end;
+    background: #f8fafc;
+    padding: 12px;
+    margin: 16px -20px -20px -20px;
+    border-radius: 0 0 16px 16px;
+    border-top: 1px solid #e2e8f0;
+    flex-wrap: wrap;
     gap: 10px;
   }
-  
-  .search-input {
-    width: 100%;
-  }
-  
-  .view-header {
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-  }
-  
-  .view-cover {
-    margin-bottom: 10px;
-  }
-  
-  .view-title-section .tags {
-    justify-content: center;
-  }
-}
-
-
-
-
-.empty-text {
-  text-align: center;
-  color: #909399;
-  padding: 20px;
-  background-color: #f9fafc;
-  border-radius: 4px;
-}
-
-.pagination-container {
-  display: flex;
-  justify-content: center;
-  padding: 20px 0;
-  margin-top: 20px;
-}
-
-@media (min-width: 769px) {
-    .visible-xs-only {
-        display: none !important;
-    }
-}
-
-@media (max-width: 768px) {
-    .hidden-xs-only {
-        display: none !important;
-    }
-
-    .mobile-list {
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
-    }
-
-    .mobile-project-card {
-        border: 1px solid #ebeef5;
-        border-radius: 8px;
-        padding: 16px;
-        background: #fff;
-    }
-
-    .card-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 12px;
-        border-bottom: 1px solid #f0f2f5;
-        padding-bottom: 8px;
-    }
-    
-    .card-title {
-        font-weight: 600;
-        font-size: 16px;
-        color: #303133;
-    }
-
-    .card-body {
-        font-size: 14px;
-        color: #606266;
-    }
-
-    .card-row {
-        margin-bottom: 8px;
-        display: flex;
-        align-items: center;
-    }
-    
-    .card-row.timer-row {
-       font-size: 13px;
-    }
-
-    .card-row .label {
-        font-weight: 500;
-        margin-right: 8px;
-        min-width: 40px;
-    }
-
-    .card-actions {
-        display: flex;
-        justify-content: flex-end;
-        border-top: 1px solid #f0f2f5;
-        padding-top: 8px;
-        margin-top: 8px;
-        flex-wrap: wrap;
-        gap: 8px;
-    }
 }
 </style>

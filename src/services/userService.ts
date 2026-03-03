@@ -1,8 +1,6 @@
-import { httpRequest } from './http'
-import type { LoginResponse, User } from '@/entity/User'
-
-
-const API_BASE_URL = 'https://unscreenable-cathrine-unprejudicially.ngrok-free.dev/api'
+import {httpRequest} from './http'
+import type {LoginResponse, User} from '@/entity/User'
+import {API_BASE_URL} from '@/config'
 
 export interface ApiResponse<T> {
     code: number
@@ -11,40 +9,31 @@ export interface ApiResponse<T> {
 }
 
 export const userService = {
-    /**
-     * Login user
-     */
     async login(studentNo: string, password: string): Promise<LoginResponse> {
-        const res = await httpRequest<ApiResponse<LoginResponse>>({
-            method: 'get',
+        const response = await httpRequest<ApiResponse<LoginResponse>>({
+            method: 'post',
             url: `${API_BASE_URL}/user/login`,
-            params: { studentNo, password }
+            data: { studentNo, password }
         })
-        if (res.code === 200) {
-            const userData = res.data
-
-            // Store token in localStorage
+        if (response.code === 200) {
+            const userData = response.data
             localStorage.setItem('token', userData.token)
-            // Store normalized user info in cache
             localStorage.setItem('userInfo', JSON.stringify(userData))
             return userData
-        } else {
-            throw new Error(res.message)
         }
+        throw new Error(response.message)
     },
 
-
     async getUserInfo(token?: string): Promise<User> {
-        const authToken = token || localStorage.getItem('token')
-
-        if (!authToken) {
-            throw new Error('No token found')
+        const headers: Record<string, string> = {}
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`
         }
 
         const res = await httpRequest<ApiResponse<User>>({
             method: 'get',
             url: `${API_BASE_URL}/user/getUser`,
-            headers: { Authorization: `Bearer ${authToken}` }
+            ...(token ? { headers } : {})
         })
         if (res.code === 200) {
             return res.data
@@ -58,7 +47,7 @@ export const userService = {
             const res = await httpRequest<ApiResponse<User>>({
                 method: 'get',
                 url: `${API_BASE_URL}/user/getUserByStudentNo`,
-                params: { studentNo }
+                params: {studentNo}
             })
             if (res.code === 200) {
                 return res.data
@@ -68,7 +57,6 @@ export const userService = {
             return null
         }
     },
-
 
     getCachedUserInfo(): User | null {
         const userInfoStr = localStorage.getItem('userInfo')
@@ -82,9 +70,6 @@ export const userService = {
         return null
     },
 
-    /**
-     * Logout user
-     */
     logout(): void {
         localStorage.removeItem('token')
         localStorage.removeItem('userInfo')
@@ -95,15 +80,13 @@ export const userService = {
         if (!token) return "No token"
 
         try {
-            // 添加超时控制，避免在网络不好时等待过长
             const timeoutPromise = new Promise<string>((_, reject) =>
                 setTimeout(() => reject(new Error('Timeout')), 5000)
             )
 
-            const verifyPromise = httpRequest<ApiResponse<any>>({
+            const verifyPromise = httpRequest<ApiResponse<unknown>>({
                 method: 'get',
-                url: `${API_BASE_URL}/user/verifyToken`,
-                headers: { Authorization: `Bearer ${token}` }
+                url: `${API_BASE_URL}/user/verifyToken`
             }).then(res => {
                 if (res.code !== 200) {
                     return res.message
@@ -112,18 +95,16 @@ export const userService = {
             })
 
             return await Promise.race([verifyPromise, timeoutPromise])
-        } catch (e: any) {
-            console.error('[verifyToken] Error:', e.message)
-            return e.message || "Verification failed"
+        } catch (e: unknown) {
+            const message = e instanceof Error ? e.message : 'Verification failed'
+            return message
         }
     },
 
     async getAllUsers(): Promise<User[]> {
-        const token = localStorage.getItem('token')
         const res = await httpRequest<ApiResponse<User[]>>({
             method: 'get',
-            url: `${API_BASE_URL}/user/listAll`,
-            headers: { Authorization: `Bearer ${String(token || '')}` }
+            url: `${API_BASE_URL}/user/listAll`
         })
         if (res.code === 200) {
             return res.data

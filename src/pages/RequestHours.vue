@@ -1,24 +1,25 @@
 <script setup lang="ts">
 import {ref, reactive, onMounted, onUnmounted} from 'vue'
-import {activityService} from '../services/activityService'
+import {hourRequestService} from '../services/hourRequestService'
 import {ActivityType} from '../entity/ActivityType'
 import {getActivityTypeOptions, getAttachmentUrl} from '@/util/util'
 import {ElMessage} from 'element-plus'
-import {Plus, Document} from '@element-plus/icons-vue'
+import {Document} from '@element-plus/icons-vue'
 import type {UploadProps, UploadUserFile, FormInstance} from 'element-plus'
 import type {Activity} from '@/entity/Activity'
 import {ActivityStatus} from '@/entity/ActivityStatus'
+import PageHeader from '@/components/PageHeader.vue'
+import { formatDateTimeForApi } from '@/composables/useActivityHelpers'
 
 const activeTab = ref('submit')
 const loading = ref(false)
 const myRequests = ref<Activity[]>([])
 
-// Form
 const formRef = ref<FormInstance>()
 const labelPosition = ref('right')
 const form = reactive({
   name: '',
-  functionary: '', // 证明人
+  functionary: '',
   type: '' as ActivityType | '',
   description: '',
   startTime: '',
@@ -50,20 +51,6 @@ const handleRemove: UploadProps['onRemove'] = (file, fileList) => {
   form.files = fileList
 }
 
-const formatDateTime = (dateStr: string) => {
-  if (!dateStr) return ''
-  const date = new Date(dateStr)
-  const pad = (n: number) => n.toString().padStart(2, '0')
-  const year = date.getFullYear()
-  const month = pad(date.getMonth() + 1)
-  const day = pad(date.getDate())
-  const hours = pad(date.getHours())
-  const minutes = pad(date.getMinutes())
-  const seconds = pad(date.getSeconds())
-  
-  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}+08:00`
-}
-
 const submitForm = async (formEl: FormInstance | undefined) => {
   if (!formEl) return
   await formEl.validate(async (valid) => {
@@ -74,11 +61,11 @@ const submitForm = async (formEl: FormInstance | undefined) => {
       }
       loading.value = true
       try {
-        await activityService.requestHours({
+        await hourRequestService.requestHours({
           ...form,
-          startTime: formatDateTime(form.startTime),
-          endTime: formatDateTime(form.endTime),
-          files: form.files.map(f => f.raw)
+          startTime: formatDateTimeForApi(form.startTime),
+          endTime: formatDateTimeForApi(form.endTime),
+          files: form.files.map(f => f.raw).filter(Boolean) as Blob[]
         })
         ElMessage.success('申请提交成功，请等待审核')
         formEl.resetFields()
@@ -98,7 +85,7 @@ const submitForm = async (formEl: FormInstance | undefined) => {
 const fetchMyRequests = async () => {
   loading.value = true
   try {
-    myRequests.value = await activityService.getMyRequests()
+    myRequests.value = await hourRequestService.getMyRequests()
   } catch (e) {
     console.error(e)
   } finally {
@@ -109,7 +96,7 @@ const fetchMyRequests = async () => {
 const getStatusType = (status: ActivityStatus) => {
   if (status === ActivityStatus.FailReview) return 'danger'
   if (status === ActivityStatus.UnderReview) return 'warning'
-  return 'success' // Default to success for others (Approved)
+  return 'success'
 }
 
 const getStatusText = (status: ActivityStatus) => {
@@ -139,16 +126,7 @@ onUnmounted(() => {
 
 <template>
   <div class="request-hours-page">
-    <div class="page-header">
-      <div class="header-content">
-        <h1 class="title">志愿时长申请</h1>
-        <p class="subtitle">提交校外或其他志愿活动证明，申请增加志愿时长</p>
-      </div>
-      <div class="header-decoration">
-        <div class="circle circle-1"></div>
-        <div class="circle circle-2"></div>
-      </div>
-    </div>
+    <PageHeader title="志愿时长申请" subtitle="提交校外或其他志愿活动证明，申请增加志愿时长" />
 
     <div class="content-container">
       <el-tabs v-model="activeTab" class="custom-tabs">
@@ -284,169 +262,53 @@ onUnmounted(() => {
 .request-hours-page {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 24px 28px;
   min-height: 80vh;
+  background: var(--page-bg);
 }
-
-/* Header */
-.page-header {
-  background: linear-gradient(135deg, #409eff 0%, #3a8ee6 100%);
-  border-radius: 16px;
-  padding: 40px;
-  margin-bottom: 30px;
-  color: white;
-  position: relative;
-  overflow: hidden;
-  box-shadow: 0 10px 20px rgba(64, 158, 255, 0.2);
-}
-
-.header-content {
-  position: relative;
-  z-index: 2;
-}
-
-.title {
-  font-size: 32px;
-  font-weight: 700;
-  margin: 0 0 10px 0;
-  letter-spacing: 1px;
-}
-
-.subtitle {
-  font-size: 16px;
-  opacity: 0.9;
-  margin: 0;
-  color: white;
-}
-
-.header-decoration .circle {
-  position: absolute;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.circle-1 {
-  width: 200px;
-  height: 200px;
-  top: -50px;
-  right: -50px;
-}
-
-.circle-2 {
-  width: 100px;
-  height: 100px;
-  bottom: -20px;
-  right: 100px;
-}
-
-/* Content */
 .form-card {
-  border-radius: 12px;
-  border: none;
+  border-radius: var(--radius-card);
+  border: 1px solid var(--card-border) !important;
+  box-shadow: var(--card-shadow);
 }
-
-.upload-tip {
-  font-size: 12px;
-  color: #909399;
-  margin-top: 8px;
-}
-
-.submit-btn {
-  width: 100%;
-}
-
+.upload-tip { font-size: 12px; color: #94a3b8; margin-top: 8px; }
+.submit-btn { width: 100%; }
 .request-card {
   margin-bottom: 16px;
-  border-radius: 12px;
+  border-radius: var(--radius-card);
+  border: 1px solid var(--card-border) !important;
+  box-shadow: var(--card-shadow);
 }
-
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 12px;
   padding-bottom: 8px;
-  border-bottom: 1px solid #ebeef5;
+  border-bottom: 1px solid var(--card-border);
 }
-
-.req-name {
-  font-weight: 600;
-  font-size: 16px;
-}
-
-.info-row {
-  margin-bottom: 6px;
-  font-size: 14px;
-  color: #606266;
-}
-
-.info-row .label {
-  color: #909399;
-  margin-right: 8px;
-}
-
-.desc {
-  white-space: pre-wrap;
-}
-
+.req-name { font-weight: 600; font-size: 16px; color: #0f172a; }
+.info-row { margin-bottom: 6px; font-size: 14px; color: #475569; }
+.info-row .label { color: #94a3b8; margin-right: 8px; }
+.desc { white-space: pre-wrap; }
 .reject-reason {
   margin-top: 10px;
-  padding: 8px;
-  background-color: #fef0f0;
-  border-radius: 4px;
-  color: #f56c6c;
+  padding: 8px 12px;
+  background-color: #fef2f2;
+  border-radius: 8px;
+  border-left: 3px solid var(--danger-500);
+  color: var(--danger-500);
   font-size: 14px;
 }
-
-.text-center {
-  text-align: center;
-}
-
-.ml-2 {
-  margin-left: 8px;
-}
-
-.mt-2 {
-  margin-top: 8px;
-}
-
-.attachment-link {
-  font-size: 13px;
-  margin-top: 4px;
-}
-
+.attachment-link { font-size: 13px; margin-top: 4px; }
 @media (max-width: 768px) {
-  .request-hours-page {
-    padding: 10px;
-  }
-  
-  .page-header {
-    padding: 24px;
-    border-radius: 8px;
-  }
-  
-  .header-decoration {
-    display: none;
-  }
-  
-  .title {
-    font-size: 24px;
-  }
-  
-  .subtitle {
-    font-size: 14px;
-  }
-
-  /* Adjust date picker layout on mobile */
+  .request-hours-page { padding: 16px; }
   :deep(.el-col-11), :deep(.el-col-2) {
     width: 100%;
     max-width: 100%;
     flex: 0 0 100%;
     margin-bottom: 10px;
   }
-
-  :deep(.el-col-2) {
-    display: none; /* Hide the dash separator on mobile */
-  }
+  :deep(.el-col-2) { display: none; }
 }
 </style>

@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Search } from '@element-plus/icons-vue'
+import { Search, Calendar, User as UserIcon, Clock } from '@element-plus/icons-vue'
 import { activityService, type ActivityListParams } from '@/services/activityService'
 import type { Activity } from '@/entity/Activity'
 import { ActivityStatus } from '@/entity/ActivityStatus'
 import { ActivityType } from '@/entity/ActivityType'
 import {userService} from "@/services/userService.ts";
-import { getActivityTypeLabel, getActivityStatusLabel } from '@/util/util'
+import { getActivityTypeLabel, getActivityStatusLabel, getCoverImageUrl } from '@/util/util'
+import PageHeader from '@/components/PageHeader.vue'
 import defaultActivityImage from '@/image/activity-card-bg.png'
 
 // State
@@ -43,10 +44,10 @@ const fetchActivities = async () => {
   loading.value = true
   try {
     const response = await activityService.getActivities(filterParams.value)
-    activities.value = (response.items || []).filter(a => a.status !== ActivityStatus.UnderReview
+    activities.value = (response?.items || []).filter(a => a.status !== ActivityStatus.UnderReview
         && a.status !== ActivityStatus.FailReview)
-    total.value = response.total || 0
-    currentPage.value = response.page || 1
+    total.value = response?.total || 0
+    currentPage.value = response?.page || 1
   } catch (error) {
     console.error('Failed to fetch activities:', error)
     ElMessage.error('加载活动列表失败，请稍后重试')
@@ -124,9 +125,14 @@ onMounted(() => {
 
 <template>
   <div class="activities-page">
-    <div class="banner-section"></div>
-    <div class="content-wrapper">
-      <div class="filter-section">
+    <PageHeader title="活动列表" subtitle="发现并参与各类志愿公益活动">
+      <template #controls>
+        <span class="total-badge">共 {{ total }} 项活动</span>
+      </template>
+    </PageHeader>
+
+    <div class="page-body">
+      <div class="filter-bar">
         <el-input
           v-model="searchName"
           placeholder="搜索活动名称..."
@@ -176,12 +182,10 @@ onMounted(() => {
         </el-select>
       </div>
 
-      <!-- Loading State -->
       <div v-if="loading" class="loading-container">
         <el-skeleton :rows="5" animated />
       </div>
 
-      <!-- Activities Grid -->
       <div v-else-if="activities.length > 0" class="activities-grid">
         <div
           v-for="activity in activities"
@@ -189,64 +193,62 @@ onMounted(() => {
           class="activity-card"
           @click="$router.push(`/app/activity/${activity.id}`)"
         >
-          <div class="card-image-wrapper">
+          <div class="card-img-wrap">
             <el-image
-              :src="activity.CoverImage || defaultActivityImage"
+              :src="activity.CoverImage ? getCoverImageUrl(activity.CoverImage) : defaultActivityImage"
               :alt="activity.name"
-              class="card-image"
+              class="card-img"
               fit="cover"
               lazy
             >
               <template #placeholder>
-                <div class="card-image" />
+                <div class="card-img-placeholder" />
               </template>
               <template #error>
-                <img :src="defaultActivityImage" class="card-image" alt="" />
+                <img :src="defaultActivityImage" class="card-img" alt="" />
               </template>
             </el-image>
-          </div>
-
-          <div class="card-info">
-            <h3 class="card-title">{{ activity.name }}</h3>
-            <div>
-              <span class="info-text">报名时间:</span>
-            </div>
-            <div class="info-row">
-              <span class="info-text">{{ formatDate(activity.EnrollmentStartTime) }}</span>
-              <span class="info-text">{{ formatDate(activity.EnrollmentEndTime) }}</span>
-            </div>
-
-            <div class="info-row">
-              <span class="info-text">负责人: {{ getUsername(activity.functionary) }}</span>
-            </div>
-
-            <div class="info-row">
-              <span class="info-text">{{ getTypeText(activity.type) }}</span>
-            </div>
-
-            <div class="info-row">
-              <span class="info-text">
-                {{ activity.isFull ? '已满员' : '未满员' }}
-                ({{ getParticipantCount(activity) }}人)
-              </span>
-            </div>
-
-            <div class="info-row">
-              <el-tag :type="getStatusType(activity.status)" size="small" class="status-tag-inline">
+            <div class="card-badge">
+              <el-tag :type="getStatusType(activity.status)" effect="dark" size="small" round>
                 {{ getStatusText(activity.status) }}
               </el-tag>
+            </div>
+          </div>
+
+          <div class="card-body">
+            <div class="card-top">
+              <h3 class="card-name" :title="activity.name">{{ activity.name }}</h3>
+              <el-tag size="small" effect="light" class="type-chip">{{ getTypeText(activity.type) }}</el-tag>
+            </div>
+
+            <div class="card-meta">
+              <div class="meta-item">
+                <el-icon><Calendar /></el-icon>
+                <span>{{ formatDate(activity.EnrollmentStartTime) }} — {{ formatDate(activity.EnrollmentEndTime) }}</span>
+              </div>
+              <div class="meta-item">
+                <el-icon><UserIcon /></el-icon>
+                <span>{{ getUsername(activity.functionary) }}</span>
+              </div>
+              <div class="meta-item">
+                <el-icon><Clock /></el-icon>
+                <span
+                  :class="{'text-full': activity.isFull, 'text-available': !activity.isFull && activity.status === ActivityStatus.EnrollmentStarted}"
+                >
+                  {{ activity.isFull ? '已满员' : (activity.status === ActivityStatus.EnrollmentStarted ? '报名中' : getStatusText(activity.status)) }}
+                </span>
+                <span class="count-label">({{ getParticipantCount(activity) }})</span>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Empty State -->
       <div v-else class="empty-state">
         <p>暂无活动数据</p>
       </div>
 
-      <!-- Pagination -->
-      <div v-if="total > pageSize" class="pagination-container">
+      <div v-if="total > pageSize" class="pagination-wrap">
         <el-pagination
           v-model:current-page="currentPage"
           :page-size="pageSize"
@@ -262,294 +264,201 @@ onMounted(() => {
 
 <style scoped>
 .activities-page {
+  background: var(--page-bg);
   min-height: 100vh;
-  background: rgba(255, 255, 255, 1);
-  font-family: 'SourceHanSansCN-Regular', 'Microsoft YaHei', sans-serif;
-  position: relative;
 }
 
-/* Banner Section */
-.banner-section {
-  position: absolute;
-  left: 12px;
-  top: 22px;
-  width: 1414px;
-  height: 197px;
-  background-image: url('../image/banner-bg.png');
-  background-position: center;
-  background-size: cover;
-  background-repeat: no-repeat;
-  border-radius: 5px;
+.page-body {
+  padding: 24px 28px;
 }
 
-/* Content Wrapper */
-.content-wrapper {
-  position: absolute;
-  left: 12px;
-  top: 237px;
-  width: 1414px;
-}
-
-/* Filter Section */
-.filter-section {
+.filter-bar {
   display: flex;
-  gap: 15px;
-  margin-bottom: 20px;
-  padding: 0 23px;
+  gap: 12px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
 }
 
 .filter-input {
   flex: 2;
+  min-width: 200px;
 }
 
 .filter-select {
   flex: 1;
+  min-width: 140px;
 }
 
-/* Filter Headers */
-.filter-headers {
-  display: flex;
-  justify-content: space-between;
-  width: 100%;
-  height: 103px;
-  margin-bottom: 15px;
-  align-items: center;
-  padding: 0 23px;
-  background: transparent;
+.total-badge {
+  font-size: 13px;
+  color: #64748b;
+  background: var(--brand-50);
+  border: 1px solid var(--brand-200);
+  border-radius: 20px;
+  padding: 4px 14px;
+  font-weight: 500;
 }
 
-.header-item {
-  width: 293px;
-  height: 58px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: rgba(0, 0, 0, 1);
-  font-size: 20px;
-  font-weight: 400;
-  text-align: center;
-}
-
-/* Loading State */
-.loading-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 80px 20px;
-  color: #4e5969;
-}
-
-.loading-container p {
-  margin-top: 20px;
-  font-size: 16px;
-}
-
-/* Empty State */
-.empty-state {
-  text-align: center;
-  padding: 80px 20px;
-  color: #4e5969;
-  font-size: 18px;
-}
-
-/* Activities Grid */
 .activities-grid {
   display: grid;
-  grid-template-columns: repeat(3, 370px);
-  gap: 44px 115px;
-  padding-left: 44px;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 20px;
 }
 
-/* Activity Card */
 .activity-card {
-  width: 370px;
-  height: 200px;
-  border-radius: 10px;
-  background: rgba(255, 232, 232, 1);
+  height: 175px;
+  border-radius: var(--radius-card);
+  background: var(--card-bg);
   display: flex;
-  padding: 9px;
-  gap: 13px;
-  transition: transform 0.3s, box-shadow 0.3s;
+  border: 1px solid var(--card-border);
+  box-shadow: var(--card-shadow);
   cursor: pointer;
+  overflow: hidden;
+  transition: var(--transition-slow);
 }
 
 .activity-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  transform: translateY(-3px);
+  box-shadow: var(--card-shadow-hover);
+  border-color: var(--brand-200);
 }
 
-/* Card Image */
-.card-image-wrapper {
+.card-img-wrap {
+  position: relative;
+  width: 175px;
+  height: 175px;
   flex-shrink: 0;
-  width: 163px;
-  height: 163px;
-  background-color: #f5f5f5;
-  border-radius: 5px;
-  overflow: hidden;
 }
 
-.card-image {
-  width: 163px;
-  height: 163px;
-  border-radius: 5px;
+.card-img {
+  width: 100%;
+  height: 100%;
   object-fit: cover;
-  background-color: #f5f5f5;
 }
 
-/* Card Info */
-.card-info {
+.card-img-placeholder {
+  width: 100%;
+  height: 100%;
+  background: #f1f5f9;
+}
+
+.card-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 2;
+}
+
+.card-body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding-top: 7px;
+  padding: 16px;
+  min-width: 0;
+  justify-content: space-between;
 }
 
-.card-title {
-  font-size: 18px;
-  font-weight: 400;
-  color: rgba(0, 0, 0, 1);
-  margin: 0 0 16px 0;
-  line-height: 1.5;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* Info Rows */
-.info-row {
+.card-top {
   display: flex;
-  align-items: center;
+  justify-content: space-between;
+  align-items: flex-start;
   gap: 8px;
-  margin-bottom: 5px;
-  height: 21px;
+  margin-bottom: 8px;
 }
 
-.info-icon {
-  width: auto;
-  height: 16px;
-  object-fit: contain;
-  flex-shrink: 0;
-}
-
-.info-text {
-  font-size: 11px;
-  color: rgba(0, 0, 0, 1);
-  line-height: 21px;
+.card-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #0f172a;
+  margin: 0;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   flex: 1;
 }
 
-.status-tag-inline {
-  margin-left: auto;
+.type-chip {
   flex-shrink: 0;
 }
 
-/* Pagination */
-.pagination-container {
+.card-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.meta-item :deep(.el-icon) {
+  font-size: 13px;
+  flex-shrink: 0;
+  color: #94a3b8;
+}
+
+.meta-item span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.text-full {
+  color: #ef4444;
+}
+
+.text-available {
+  color: #10b981;
+}
+
+.count-label {
+  color: #94a3b8;
+  margin-left: 3px;
+  font-size: 11px;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 80px 20px;
+  color: #94a3b8;
+  font-size: 16px;
+}
+
+.loading-container {
+  padding: 60px 20px;
+}
+
+.pagination-wrap {
   display: flex;
   justify-content: center;
-  padding: 40px 0;
-  margin-top: 20px;
+  padding: 32px 0;
 }
 
-/* Responsive adjustments */
-@media (max-width: 1440px) {
-  .banner-section,
-  .content-wrapper {
-    left: 50%;
-    transform: translateX(-50%);
-    width: 95%; /* Adapt width for smaller screens */
-    max-width: 1414px;
-  }
-  
-  .filter-headers {
-    width: 100%;
-    justify-content: space-around;
-  }
-  
-  .header-item {
-    width: auto;
-    flex: 1;
-  }
-}
-
-@media (max-width: 1200px) {
-  .activities-grid {
-    grid-template-columns: repeat(2, 1fr);
-    justify-content: center;
-    padding-left: 0;
-    gap: 30px;
-    justify-items: center;
-  }
-  
-  .activity-card {
-    width: 100%;
-    max-width: 450px;
+@media (max-width: 768px) {
+  .page-body {
+    padding: 16px;
   }
 
-  .filter-headers {
-    display: none; /* Hide fixed headers on smaller screens if they don't fit */
-  }
-}
-
-@media (max-width: 800px) {
   .activities-grid {
     grid-template-columns: 1fr;
-    padding-left: 0;
-    gap: 30px;
+    gap: 16px;
   }
 
   .activity-card {
-    width: 100%;
-    max-width: 400px;
-    margin: 0 auto;
     height: auto;
     flex-direction: column;
   }
-  
-  .card-image {
+
+  .card-img-wrap {
     width: 100%;
     height: 200px;
-  }
-  
-  .card-info {
-    padding: 10px;
-  }
-
-  .banner-section {
-    position: relative;
-    width: 100%;
-    height: 120px;
-    left: 0;
-    top: 0;
-    transform: none;
-    margin-bottom: 20px;
-    border-radius: 0;
-  }
-
-  .content-wrapper {
-    position: relative;
-    width: 100%;
-    left: 0;
-    top: 0;
-    transform: none;
-    padding: 0 16px;
-  }
-
-  .filter-section {
-    flex-direction: column;
-    padding: 0;
-  }
-  
-  .filter-input, .filter-select {
-    width: 100%;
-  }
-
-  .filter-headers {
-    display: none; /* Simplify headers on mobile */
   }
 }
 </style>

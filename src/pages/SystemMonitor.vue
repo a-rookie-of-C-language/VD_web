@@ -5,9 +5,8 @@ import { DataLine, User, Timer, Trophy } from '@element-plus/icons-vue'
 import { monitorService, type MonitorOverview, type TopUser, type UserStatItem } from '@/services/monitorService'
 import { userService } from '@/services/userService'
 import type { User as UserEntity } from '@/entity/User'
+import PageHeader from '@/components/PageHeader.vue'
 
-// State
-// Filters
 const filterClazz = ref('')
 const filterGrade = ref('')
 const filterCollege = ref('')
@@ -15,7 +14,6 @@ const clazzOptions = ref<string[]>([])
 const gradeOptions = ref<string[]>([])
 const collegeOptions = ref<string[]>([])
 
-// Pagination
 const currentPage = ref(1)
 const pageSize = ref(10)
 const totalUsers = ref(0)
@@ -31,28 +29,23 @@ const overview = ref<MonitorOverview>({
   activeUsers: 0
 })
 
-// Old fallback
 const topUsers = ref<TopUser[]>([])
 const allUsersMap = ref<Map<string, UserEntity>>(new Map())
 
-// New list
 const userStatsList = ref<UserStatItem[]>([])
 
 const loading = ref(false)
 
-// Computed
 const averageActivities = computed(() => {
   if (!overview.value.totalUsers) return 0
   return (overview.value.totalActivities / overview.value.totalUsers).toFixed(1)
 })
 
 const enrichedUsers = computed(() => {
-  // If we have data from new API, use it
   if (userStatsList.value.length > 0) {
     return userStatsList.value
   }
   
-  // Fallback to old logic if new API returns empty (e.g. not implemented yet)
   return topUsers.value.map(user => {
     const userDetail = allUsersMap.value.get(user.studentNo)
     return {
@@ -60,8 +53,8 @@ const enrichedUsers = computed(() => {
       clazz: userDetail?.clazz || '-',
       grade: userDetail?.grade || '-',
       college: userDetail?.college || '-',
-      activityCount: 0, // Fallback doesn't have this
-      totalDuration: user.hours // Map hours to totalDuration
+      activityCount: 0,
+      totalDuration: user.hours
     }
   })
 })
@@ -69,7 +62,6 @@ const enrichedUsers = computed(() => {
 const fetchMonitorData = async () => {
   loading.value = true
   try {
-    // 1. Fetch Overview
     const data = await monitorService.getDashboardData('yearly', {
       clazz: filterClazz.value,
       grade: filterGrade.value,
@@ -78,7 +70,6 @@ const fetchMonitorData = async () => {
     overview.value = data.overview
     topUsers.value = data.topUsers
     
-    // 2. Fetch User Stats (New API)
     try {
         const statsData = await monitorService.getUserStats({
             page: currentPage.value,
@@ -105,7 +96,6 @@ const fetchMonitorData = async () => {
 
 const fetchFilterOptions = async () => {
   try {
-    // Try new API first
     const filters = await monitorService.getFilterOptions()
     if (filters && (filters.clazzes.length || filters.grades.length || filters.colleges.length)) {
         clazzOptions.value = filters.clazzes
@@ -114,7 +104,6 @@ const fetchFilterOptions = async () => {
         return
     }
 
-    // Fallback to old logic
     const users = await userService.getAllUsers()
     const clazzSet = new Set<string>()
     const gradeSet = new Set<string>()
@@ -148,30 +137,22 @@ onMounted(() => {
 
 <template>
   <div class="monitor-page">
-    <div class="page-header">
-      <div class="header-content">
-        <h1 class="title">系统监控大屏</h1>
-        <p class="subtitle">实时监控系统运行状态，掌握志愿活动数据</p>
-      </div>
-      <div class="header-decoration">
-        <div class="circle circle-1"></div>
-        <div class="circle circle-2"></div>
-      </div>
-      
-      <div class="header-controls">
-        <el-select v-model="filterClazz" placeholder="班级筛选" clearable size="default" @change="fetchMonitorData" class="filter-select">
-          <el-option v-for="c in clazzOptions" :key="c" :label="c" :value="c" />
-        </el-select>
-        <el-select v-model="filterGrade" placeholder="年级筛选" clearable size="default" @change="fetchMonitorData" class="filter-select">
-          <el-option v-for="g in gradeOptions" :key="g" :label="g" :value="g" />
-        </el-select>
-        <el-select v-model="filterCollege" placeholder="学院筛选" clearable size="default" @change="fetchMonitorData" class="filter-select">
-          <el-option v-for="c in collegeOptions" :key="c" :label="c" :value="c" />
-        </el-select>
-      </div>
-    </div>
+    <PageHeader title="系统监控大屏" subtitle="实时监控系统运行状态，掌握志愿活动数据">
+      <template #controls>
+        <div class="header-controls">
+          <el-select v-model="filterClazz" placeholder="班级筛选" clearable size="default" @change="fetchMonitorData" class="filter-select">
+            <el-option v-for="c in clazzOptions" :key="c" :label="c" :value="c" />
+          </el-select>
+          <el-select v-model="filterGrade" placeholder="年级筛选" clearable size="default" @change="fetchMonitorData" class="filter-select">
+            <el-option v-for="g in gradeOptions" :key="g" :label="g" :value="g" />
+          </el-select>
+          <el-select v-model="filterCollege" placeholder="学院筛选" clearable size="default" @change="fetchMonitorData" class="filter-select">
+            <el-option v-for="c in collegeOptions" :key="c" :label="c" :value="c" />
+          </el-select>
+        </div>
+      </template>
+    </PageHeader>
 
-    <!-- Data Cards -->
     <el-row :gutter="20" class="mb-4">
       <el-col :span="6" :xs="12">
         <el-card shadow="hover" class="data-card">
@@ -229,10 +210,9 @@ onMounted(() => {
       </el-col>
     </el-row>
 
-    <!-- User Details Table -->
     <el-card shadow="hover" class="list-card mb-4">
       <template #header>
-        <div class="card-header">
+        <div class="card-header-text">
           <span>用户详细数据</span>
         </div>
       </template>
@@ -255,7 +235,6 @@ onMounted(() => {
         </el-table-column>
       </el-table>
 
-      <!-- Mobile User List -->
       <div class="visible-xs-only mobile-user-list" v-loading="loading">
         <div v-for="(user, index) in enrichedUsers" :key="user.studentNo" class="mobile-user-card">
           <div class="user-card-header">
@@ -297,296 +276,106 @@ onMounted(() => {
 .monitor-page {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 24px 28px;
   min-height: 80vh;
+  background: var(--page-bg);
 }
-
-/* Header */
-.page-header {
-  background: linear-gradient(135deg, #409eff 0%, #3a8ee6 100%);
-  border-radius: 16px;
-  padding: 40px;
-  margin-bottom: 30px;
-  color: white;
-  position: relative;
-  overflow: hidden;
-  box-shadow: 0 10px 20px rgba(64, 158, 255, 0.2);
-}
-
-.header-content {
-  position: relative;
-  z-index: 2;
-  margin-bottom: 20px;
-}
-
-.title {
-  font-size: 32px;
-  font-weight: 700;
-  margin: 0 0 10px 0;
-  letter-spacing: 1px;
-}
-
-.subtitle {
-  font-size: 16px;
-  opacity: 0.9;
-  margin: 0;
-}
-
-.header-decoration .circle {
-  position: absolute;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.circle-1 {
-  width: 200px;
-  height: 200px;
-  top: -50px;
-  right: -50px;
-}
-
-.circle-2 {
-  width: 100px;
-  height: 100px;
-  bottom: -20px;
-  right: 100px;
-}
-
 .header-controls {
-  position: relative;
-  z-index: 2;
   display: flex;
-  gap: 15px;
+  gap: 12px;
   flex-wrap: wrap;
-  background: rgba(255, 255, 255, 0.1);
-  padding: 15px;
-  border-radius: 12px;
-  backdrop-filter: blur(5px);
 }
-
-.filter-select {
-  width: 150px;
-}
-
-.mb-4 {
-  margin-bottom: 20px;
-}
-
+.filter-select { width: 150px; }
 .list-card {
-  border-radius: 12px;
-  border: none;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border-radius: var(--radius-card);
+  border: 1px solid var(--card-border) !important;
+  box-shadow: var(--card-shadow);
 }
-
 .data-card {
   height: 100%;
-  border-radius: 12px;
-  border: none;
-  transition: all 0.3s;
+  border-radius: var(--radius-card);
+  border: 1px solid var(--card-border) !important;
+  box-shadow: var(--card-shadow);
+  transition: var(--transition-base);
+  margin-bottom: 20px;
 }
-
-.data-card:hover {
-  transform: translateY(-5px);
-}
-
-.card-content {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
+.data-card:hover { transform: translateY(-4px); box-shadow: var(--card-shadow-hover); }
+.card-content { display: flex; align-items: center; gap: 16px; }
 .icon-wrapper {
-  width: 50px;
-  height: 50px;
+  width: 52px;
+  height: 52px;
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 24px;
   color: white;
+  flex-shrink: 0;
 }
-
-.blue { background: linear-gradient(135deg, #409eff, #3a8ee6); }
-.green { background: linear-gradient(135deg, #67c23a, #529b2e); }
-.orange { background: linear-gradient(135deg, #e6a23c, #b88230); }
-.purple { background: linear-gradient(135deg, #a0cfff, #8c9eff); }
-
-.info {
-  flex: 1;
-}
-
-.label {
-  font-size: 14px;
-  color: #909399;
-  margin-bottom: 4px;
-}
-
-.value {
-  font-size: 24px;
-  font-weight: 700;
-  color: #303133;
-}
-
-.sub-value {
-  font-size: 12px;
-  color: #909399;
-  margin-top: 4px;
-}
-
+.blue { background: linear-gradient(135deg, var(--brand-500), var(--brand-600)); }
+.green { background: linear-gradient(135deg, var(--accent-500), #059669); }
+.orange { background: linear-gradient(135deg, var(--warn-500), #d97706); }
+.purple { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+.info { flex: 1; }
+.label { font-size: 13px; color: #64748b; margin-bottom: 4px; }
+.value { font-size: 24px; font-weight: 700; color: #0f172a; }
+.sub-value { font-size: 12px; color: #94a3b8; margin-top: 4px; }
+.card-header-text { font-size: 16px; font-weight: 600; color: #0f172a; }
 .rank-badge {
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background-color: #f0f2f5;
-  color: #909399;
+  background-color: var(--brand-50);
+  color: #64748b;
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto;
   font-weight: 600;
+  font-size: 12px;
 }
-
-.rank-1 { background-color: #f56c6c; color: white; }
-.rank-2 { background-color: #e6a23c; color: white; }
-.rank-3 { background-color: #409eff; color: white; }
-
+.rank-1 { background: linear-gradient(135deg, #ef4444, #dc2626); color: white; }
+.rank-2 { background: linear-gradient(135deg, var(--warn-500), #d97706); color: white; }
+.rank-3 { background: linear-gradient(135deg, var(--brand-400, #818cf8), var(--brand-500)); color: white; }
+.pagination-container { margin-top: 20px; display: flex; justify-content: flex-end; }
+.mb-4 { margin-bottom: 20px; }
 @media (max-width: 768px) {
-  .monitor-page {
-    padding: 10px;
+  .monitor-page { padding: 16px; }
+  .header-controls { flex-direction: column; width: 100%; align-items: stretch; }
+  .filter-select { width: 100% !important; }
+  .data-card { margin-bottom: 12px; }
+  .mobile-user-list { display: flex; flex-direction: column; gap: 16px; }
+  .mobile-user-card {
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    padding: 16px;
+    background: var(--card-bg);
+    box-shadow: var(--card-shadow);
   }
-
-  .page-header {
-    padding: 24px;
-    border-radius: 8px;
-  }
-  
-  .header-decoration {
-    display: none;
-  }
-  
-  .title {
-    font-size: 24px;
-  }
-  
-  .subtitle {
-    font-size: 14px;
-  }
-  
-  .header-controls {
-    flex-direction: column;
-    width: 100%;
-    align-items: stretch;
-    padding: 10px;
-  }
-  
-  .filter-select {
-    width: 100% !important;
-  }
-  
-  .data-card {
+  .user-card-header {
+    display: flex;
+    align-items: center;
     margin-bottom: 12px;
+    border-bottom: 1px solid var(--card-border);
+    padding-bottom: 8px;
+    gap: 10px;
   }
-}
-
-.pagination-container {
-  margin-top: 20px;
-  display: flex;
-  justify-content: flex-end;
-}
-
-@media (min-width: 769px) {
-    .visible-xs-only {
-        display: none !important;
-    }
-}
-
-@media (max-width: 768px) {
-    .hidden-xs-only {
-        display: none !important;
-    }
-
-    .mobile-user-list {
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
-    }
-
-    .mobile-user-card {
-        border: 1px solid #ebeef5;
-        border-radius: 8px;
-        padding: 16px;
-        background: #fff;
-    }
-
-    .user-card-header {
-        display: flex;
-        align-items: center;
-        margin-bottom: 12px;
-        border-bottom: 1px solid #f0f2f5;
-        padding-bottom: 8px;
-        gap: 10px;
-    }
-
-    .user-name {
-        font-weight: 600;
-        font-size: 16px;
-        color: #303133;
-    }
-
-    .user-no {
-        font-size: 14px;
-        color: #909399;
-        margin-left: auto;
-    }
-
-    .user-card-body {
-        font-size: 14px;
-        color: #606266;
-    }
-
-    .info-row {
-        margin-bottom: 6px;
-    }
-    
-    .info-row .label {
-        color: #909399;
-        margin-right: 8px;
-        display: inline-block;
-        width: 40px;
-    }
-    
-    .stats-row {
-        display: flex;
-        justify-content: space-around;
-        margin-top: 12px;
-        padding-top: 12px;
-        border-top: 1px dashed #ebeef5;
-    }
-    
-    .stat-item {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-    }
-    
-    .stat-val {
-        font-size: 18px;
-        font-weight: 600;
-        color: #303133;
-    }
-    
-    .stat-val.highlight {
-        color: #409eff;
-    }
-    
-    .stat-lbl {
-        font-size: 12px;
-        color: #909399;
-        margin-top: 4px;
-    }
-    
-    .pagination-container {
-        justify-content: center;
-    }
+  .user-name { font-weight: 600; font-size: 16px; color: #0f172a; }
+  .user-no { font-size: 14px; color: #94a3b8; margin-left: auto; }
+  .user-card-body { font-size: 14px; color: #64748b; }
+  .info-row { margin-bottom: 6px; }
+  .info-row .label { color: #94a3b8; margin-right: 8px; display: inline-block; width: 40px; }
+  .stats-row {
+    display: flex;
+    justify-content: space-around;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--card-border);
+  }
+  .stat-item { display: flex; flex-direction: column; align-items: center; }
+  .stat-val { font-size: 18px; font-weight: 600; color: #0f172a; }
+  .stat-val.highlight { color: var(--brand-500); }
+  .stat-lbl { font-size: 12px; color: #94a3b8; margin-top: 4px; }
+  .pagination-container { justify-content: center; }
 }
 </style>

@@ -1,18 +1,23 @@
 <script setup lang="ts">
-import {ref, onMounted} from 'vue'
+import {ref, onMounted, watch} from 'vue'
 import { useRouter } from 'vue-router'
 import {ElMessage, ElMessageBox} from 'element-plus'
 import {activityService} from '@/services/activityService'
+import {hourRequestService} from '@/services/hourRequestService'
 import type {Activity} from '@/entity/Activity'
 import {useUserStore} from '@/stores/useUserStore'
 import {Timer, Trophy, Calendar, ArrowRight, User as UserIcon, SwitchButton} from '@element-plus/icons-vue'
 import {ActivityStatus} from '@/entity/ActivityStatus'
 import { getActivityTypeLabel, getActivityStatusLabel } from '@/util/util'
+import PageHeader from '@/components/PageHeader.vue'
+import { getStatusTagType, formatTimeRange } from '@/composables/useActivityHelpers'
+
+type ActivityWithRequest = Activity & { isPersonalRequest?: boolean }
 
 const userStore = useUserStore()
 const router = useRouter()
 const loading = ref(false)
-const activities = ref<Activity[]>([])
+const activities = ref<ActivityWithRequest[]>([])
 const totalDuration = ref(0)
 const totalActivities = ref(0)
 
@@ -22,11 +27,13 @@ const fetchParticipated = async () => {
   try {
     const [res, requests] = await Promise.all([
       activityService.fetchMyStatus(),
-      activityService.getMyRequests()
+      hourRequestService.getMyRequests()
     ])
     
-    const allActivities = [...(res.activities || []), ...requests]
-    // 按开始时间倒序排序
+    const markedRequests = requests.map(r => ({ ...r, isPersonalRequest: true }))
+
+    const allActivities = [...(res.activities || []), ...markedRequests]
+        .filter(act => act.status === ActivityStatus.ActivityEnded)
     allActivities.sort((a, b) => {
       const timeA = new Date(a.startTime).getTime()
       const timeB = new Date(b.startTime).getTime()
@@ -35,13 +42,12 @@ const fetchParticipated = async () => {
     
     activities.value = allActivities
     
-    // 计算个人申请的有效时长（假设 ActivityEnded 状态为已完成）
     const requestsDuration = requests
       .filter(r => r.status === ActivityStatus.ActivityEnded)
       .reduce((acc, curr) => acc + (curr.duration || 0), 0)
 
     totalDuration.value = (res.totalDuration || 0) + requestsDuration
-    totalActivities.value = (res.totalActivities || 0) + requests.length
+    totalActivities.value = allActivities.length
   } catch (e) {
     console.error(e)
     ElMessage.error('加载我的志愿数据失败')
@@ -59,7 +65,7 @@ const handleLogout = async () => {
     })
     userStore.clearUser()
     ElMessage.success('已退出登录')
-    router.push('/')
+    await router.push('/')
   } catch (e) {
     // cancelled
   }
@@ -84,54 +90,23 @@ const getStatusText = getActivityStatusLabel
 
 const getTypeText = getActivityTypeLabel
 
-const formatTimeRange = (start: string, end: string) => {
-  const startDate = new Date(start)
-  const endDate = new Date(end)
-
-  const startStr = startDate.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false
-  }).replace(/\//g, '-')
-
-  const endStr = endDate.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false
-  }).replace(/\//g, '-')
-
-  return `${startStr} ~ ${endStr}`
-}
-
 onMounted(() => {
   if (userStore.studentNo.value) {
     fetchParticipated()
   }
 })
+
+watch(() => userStore.studentNo.value, (newVal) => {
+    if (newVal) {
+        fetchParticipated()
+    }
+})
 </script>
 
 <template>
   <div class="my-stats-page">
-    <!-- Header Section -->
-    <div class="page-header">
-      <div class="header-content">
-        <h1 class="title">我的志愿概览</h1>
-        <p class="subtitle">每一份奉献都值得被铭记，感谢您的付出！</p>
-      </div>
-      <div class="header-decoration">
-        <!-- Abstract decoration circles -->
-        <div class="circle circle-1"></div>
-        <div class="circle circle-2"></div>
-      </div>
-    </div>
+    <PageHeader title="我的志愿概览" subtitle="每一份奉献都值得被铭记，感谢您的付出！" />
 
-    <!-- User Info Card -->
     <el-card class="user-info-card mb-4" shadow="hover" v-if="userStore.isLoggedIn">
       <div class="user-info-content">
         <div class="user-avatar">
@@ -147,7 +122,6 @@ onMounted(() => {
       </div>
     </el-card>
 
-    <!-- Stats Cards -->
     <div class="stats-container">
       <el-row :gutter="24">
         <el-col :span="12" :xs="24">
@@ -179,7 +153,6 @@ onMounted(() => {
       </el-row>
     </div>
 
-    <!-- Activities List -->
     <el-card class="list-card" shadow="hover">
       <template #header>
         <div class="card-header">
@@ -192,7 +165,6 @@ onMounted(() => {
         </div>
       </template>
 
-      <!-- Desktop Table -->
       <div class="hidden-xs-only">
         <el-table
             :data="activities"
@@ -203,7 +175,10 @@ onMounted(() => {
         >
           <el-table-column prop="name" label="活动名称" min-width="200">
             <template #default="{ row }">
-              <span class="activity-name">{{ row.name }}</span>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="activity-name">{{ row.name }}</span>
+                <el-tag v-if="row.isPersonalRequest" type="warning" size="small" effect="plain">个人申请</el-tag>
+              </div>
             </template>
           </el-table-column>
 
@@ -237,12 +212,13 @@ onMounted(() => {
 
           <el-table-column fixed="right" label="操作" width="100">
             <template #default="{ row }">
-              <el-button link type="primary" @click="$router.push(`/app/activity/${row.id}`)">
+              <el-button v-if="!row.isPersonalRequest" link type="primary" @click="$router.push(`/app/activity/${row.id}`)">
                 查看
                 <el-icon class="el-icon--right">
                   <ArrowRight/>
                 </el-icon>
               </el-button>
+              <span v-else class="personal-request-text">个人申请</span>
             </template>
           </el-table-column>
 
@@ -254,12 +230,15 @@ onMounted(() => {
         </el-table>
       </div>
 
-      <!-- Mobile List -->
       <div class="visible-xs-only mobile-activity-list">
           <div v-for="item in activities" :key="item.id" class="mobile-activity-item">
               <div class="item-header">
-                  <span class="item-title">{{ item.name }}</span>
-                   <el-button link type="primary" size="small" @click="$router.push(`/app/activity/${item.id}`)">查看</el-button>
+                  <div class="item-title-wrapper">
+                      <span class="item-title">{{ item.name }}</span>
+                      <el-tag v-if="item.isPersonalRequest" type="warning" size="small" effect="plain" class="ml-1">个人申请</el-tag>
+                  </div>
+                  <el-button v-if="!item.isPersonalRequest" link type="primary" size="small" @click="$router.push(`/app/activity/${item.id}`)">查看</el-button>
+                  <span v-else class="personal-request-text-mobile">个人申请</span>
               </div>
               <div class="item-body">
                   <div class="item-row">
@@ -287,232 +266,204 @@ onMounted(() => {
 .my-stats-page {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 30px 5%;
   min-height: 80vh;
+  animation: fadeUp 0.5s ease;
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-/* Header */
-.page-header {
-  background: linear-gradient(135deg, #409eff 0%, #3a8ee6 100%);
-  border-radius: 16px;
-  padding: 40px;
-  margin-bottom: 30px;
-  color: white;
-  position: relative;
-  overflow: hidden;
-  box-shadow: 0 10px 20px rgba(64, 158, 255, 0.2);
-}
-
-.header-content {
-  position: relative;
-  z-index: 2;
-}
-
-.title {
-  font-size: 32px;
-  font-weight: 700;
-  margin: 0 0 10px 0;
-  letter-spacing: 1px;
-}
-
-.subtitle {
-  font-size: 16px;
-  opacity: 0.9;
-  margin: 0;
-}
-
-.header-decoration .circle {
-  position: absolute;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.circle-1 {
-  width: 200px;
-  height: 200px;
-  top: -50px;
-  right: -50px;
-}
-
-.circle-2 {
-  width: 100px;
-  height: 100px;
-  bottom: -20px;
-  right: 100px;
-}
-
-/* Stats Cards */
 .stats-container {
   margin-bottom: 30px;
 }
 
 .stat-card {
-  background: white;
-  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 20px;
   padding: 30px;
   display: flex;
   align-items: center;
   gap: 24px;
   transition: all 0.3s ease;
-  border: 1px solid #ebeef5;
+  border: none !important;
+  box-shadow: 0 10px 30px -5px rgba(0,0,0,0.08);
   cursor: default;
+  position: relative;
+  overflow: hidden;
 }
 
+.stat-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 150px;
+  height: 150px;
+  background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 70%);
+  transform: translate(30%, -30%);
+  border-radius: 50%;
+  pointer-events: none;
+}
 .stat-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 15px 35px -5px rgba(0,0,0,0.12);
 }
 
 .stat-icon {
-  width: 64px;
-  height: 64px;
-  border-radius: 16px;
+  width: 72px;
+  height: 72px;
+  border-radius: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 32px;
+  font-size: 36px;
+  flex-shrink: 0;
+  box-shadow: inset 0 2px 4px rgba(255,255,255,0.5);
 }
-
 .duration-card .stat-icon {
-  background: #ecf5ff;
-  color: #409eff;
+  background: linear-gradient(135deg, var(--brand-400), var(--brand-600));
+  color: white;
+  box-shadow: 0 8px 16px -4px rgba(var(--brand-500-rgb, 59, 130, 246), 0.4);
 }
-
 .activity-card .stat-icon {
-  background: #f0f9eb;
-  color: #67c23a;
+  background: linear-gradient(135deg, var(--accent-400), var(--accent-600));
+  color: white;
+  box-shadow: 0 8px 16px -4px rgba(var(--accent-500-rgb, 16, 185, 129), 0.4);
 }
-
 .stat-info {
   flex: 1;
 }
 
 .stat-value {
-  font-size: 36px;
-  font-weight: 700;
-  color: #303133;
-  line-height: 1.2;
+  font-size: 42px;
+  font-weight: 800;
+  color: #1e293b;
+  line-height: 1.1;
+  letter-spacing: -1px;
 }
-
 .unit {
-  font-size: 14px;
-  color: #909399;
-  font-weight: 400;
-  margin-left: 4px;
+  font-size: 16px;
+  color: #64748b;
+  font-weight: 500;
+  margin-left: 6px;
+  letter-spacing: 0;
 }
-
 .stat-label {
-  font-size: 14px;
-  color: #606266;
-  margin-top: 4px;
+  font-size: 15px;
+  color: #64748b;
+  margin-top: 8px;
+  font-weight: 500;
 }
-
-.mb-4 {
-  margin-bottom: 20px;
-}
-
 .user-info-card {
-  border-radius: 12px;
-  border: 1px solid #ebeef5;
+  border-radius: 20px;
+  border: none !important;
+  box-shadow: 0 10px 30px -5px rgba(0,0,0,0.08);
+  margin-bottom: 30px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
 }
 
 .user-info-content {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 24px;
+  padding: 10px;
 }
 
-.user-avatar .avatar-icon {
-  background: #ecf5ff;
-  color: #409eff;
-  font-size: 24px;
+.user-avatar :deep(.el-avatar) {
+  border: 4px solid #f8fafc;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  background: linear-gradient(135deg, var(--brand-400), var(--brand-600));
+  color: white;
 }
-
 .user-details {
   flex: 1;
 }
-
 .user-name {
-  font-size: 20px;
-  font-weight: 600;
-  color: #303133;
-  margin-bottom: 4px;
+  font-size: 24px;
+  font-weight: 800;
+  color: #1e293b;
+  margin-bottom: 6px;
+  letter-spacing: -0.5px;
 }
-
 .user-id {
-  font-size: 14px;
-  color: #909399;
+  font-size: 15px;
+  color: #64748b;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  background: #f1f5f9;
+  padding: 4px 12px;
+  border-radius: 20px;
 }
 
-/* List Card */
+.user-actions .el-button {
+  border-radius: 20px;
+  padding: 10px 20px;
+  font-weight: 600;
+}
+
 .list-card {
-  border-radius: 12px;
-  border: none;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border-radius: 20px;
+  border: none !important;
+  box-shadow: 0 10px 30px -5px rgba(0,0,0,0.08);
+  background: rgba(255, 255, 255, 0.95);
 }
-
 .card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
-
 .header-title {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   font-size: 18px;
-  font-weight: 600;
-  color: #303133;
+  font-weight: 700;
+  color: #1e293b;
 }
 
+.header-title .el-icon {
+  color: var(--brand-500);
+  font-size: 20px;
+}
 .activity-name {
-  font-weight: 500;
-  color: #303133;
-}
-
-.duration-text {
-  font-family: monospace;
   font-weight: 600;
-  color: #606266;
+  color: #1e293b;
+  font-size: 15px;
 }
-
+.duration-text {
+  font-family: 'Inter', monospace;
+  font-weight: 700;
+  color: var(--brand-600);
+  background: #f0f9ff;
+  padding: 4px 10px;
+  border-radius: 8px;
+  display: inline-block;
+}
 .time-cell {
   display: flex;
   flex-direction: column;
-  line-height: 1.4;
+  line-height: 1.5;
+  color: #475569;
+  font-size: 14px;
 }
-
-.time-sub {
-  font-size: 12px;
-  color: #909399;
-}
-
 .empty-state {
-  padding: 40px 0;
+  padding: 60px 0;
 }
-
-/* Responsive */
+.personal-request-text {
+  color: #94a3b8;
+  font-size: 13px;
+  font-weight: 500;
+  background: #f8fafc;
+  padding: 4px 10px;
+  border-radius: 20px;
+}
 @media (max-width: 768px) {
   .my-stats-page {
-    padding: 10px;
-  }
-
-  .page-header {
-    padding: 24px;
-    border-radius: 8px;
-  }
-  
-  .header-decoration {
-    display: none;
-  }
-
-  .title {
-    font-size: 24px;
-  }
-  
-  .subtitle {
-    font-size: 14px;
+    padding: 16px;
   }
 
   .stats-container {
@@ -521,110 +472,112 @@ onMounted(() => {
 
   .stat-card {
     margin-bottom: 16px;
-    padding: 20px;
+    padding: 24px;
     flex-direction: column;
     align-items: flex-start;
-    gap: 12px;
+    gap: 16px;
   }
   
   .stat-icon {
-    width: 48px;
-    height: 48px;
-    font-size: 24px;
+    width: 56px;
+    height: 56px;
+    font-size: 28px;
+    border-radius: 16px;
   }
   
   .stat-value {
-    font-size: 28px;
+    font-size: 32px;
   }
   
   .user-info-content {
     flex-direction: column;
     text-align: center;
-    gap: 12px;
+    gap: 16px;
+    padding: 16px 0;
   }
-
   .user-actions {
     width: 100%;
-    margin-top: 8px;
+    margin-top: 10px;
   }
 
-  .user-actions :deep(.el-button) {
-    width: 100%;
-  }
-  
   .list-card {
-    border-radius: 8px;
+    border-radius: 16px;
   }
-  
-  /* Make table scrollable container adjustments if needed, 
-     but element-plus handles scrolling automatically */
-}
-
-@media (min-width: 769px) {
-  .visible-xs-only {
-      display: none !important;
-  }
-}
-
-@media (max-width: 768px) {
-  .hidden-xs-only {
-      display: none !important;
-  }
-
   .mobile-activity-list {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
   }
-
   .mobile-activity-item {
-      border: 1px solid #ebeef5;
-      border-radius: 8px;
-      padding: 16px;
-      background: #fff;
-  }
-
-  .item-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 12px;
-      border-bottom: 1px solid #f0f2f5;
-      padding-bottom: 8px;
-  }
-
-  .item-title {
-      font-weight: 600;
-      font-size: 16px;
-      color: #303133;
-  }
-
-  .item-body {
-      font-size: 14px;
-      color: #606266;
-  }
-
-  .item-row {
-      margin-bottom: 8px;
-      display: flex;
-      align-items: center;
-  }
-
-  .highlight-text {
-      color: var(--el-color-primary);
-      font-weight: 500;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 20px;
+    background: #ffffff;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+    transition: all 0.3s ease;
   }
   
-  .time-text {
-      font-size: 12px;
-      color: #909399;
+  .mobile-activity-item:active {
+    transform: scale(0.98);
   }
-
+  .item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+    border-bottom: 1px solid #f1f5f9;
+    padding-bottom: 12px;
+  }
+  .item-title-wrapper {
+    display: flex;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+    padding-right: 12px;
+  }
+  .item-title {
+    font-weight: 700;
+    font-size: 16px;
+    color: #1e293b;
+    line-height: 1.4;
+  }
+  .personal-request-text-mobile {
+    color: #64748b;
+    font-size: 12px;
+    white-space: nowrap;
+    background: #f1f5f9;
+    padding: 4px 10px;
+    border-radius: 20px;
+  }
+  .item-body {
+    font-size: 14px;
+    color: #475569;
+  }
+  .item-row {
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+  }
+  .highlight-text {
+    color: var(--brand-600);
+    font-weight: 600;
+    background: #f0f9ff;
+    padding: 6px 12px;
+    border-radius: 8px;
+    display: inline-flex;
+  }
+  .time-text {
+    font-size: 13px;
+    color: #64748b;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px dashed #e2e8f0;
+  }
   .empty-mobile-text {
-      text-align: center;
-      color: #909399;
-      padding: 40px 0;
+    text-align: center;
+    color: #94a3b8;
+    padding: 60px 0;
   }
 }
-
 </style>

@@ -8,6 +8,8 @@ import { ElMessage } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import type { UploadProps, UploadFile, UploadUserFile } from 'element-plus'
 import { useUserStore } from '@/stores/useUserStore'
+import PageHeader from '@/components/PageHeader.vue'
+import { formatDateTimeForApi } from '@/composables/useActivityHelpers'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -54,20 +56,6 @@ onMounted(async () => {
   }
 })
 
-const formatDateTime = (dateStr: string) => {
-  if (!dateStr) return ''
-  const date = new Date(dateStr)
-  const pad = (n: number) => n.toString().padStart(2, '0')
-  const year = date.getFullYear()
-  const month = pad(date.getMonth() + 1)
-  const day = pad(date.getDate())
-  const hours = pad(date.getHours())
-  const minutes = pad(date.getMinutes())
-  const seconds = pad(date.getSeconds())
-  
-  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}+08:00`
-}
-
 const handleImageChange: UploadProps['onChange'] = (uploadFile: UploadFile) => {
   if (uploadFile.raw) {
     const reader = new FileReader()
@@ -105,12 +93,12 @@ const handleSubmit = async () => {
         name: form.name,
         type: form.type as ActivityType,
         description: form.description,
-        enrollmentStartTime: formatDateTime(form.enrollmentStartTime),
-        enrollmentEndTime: formatDateTime(form.enrollmentEndTime),
-        startTime: formatDateTime(form.startTime),
-        expectedEndTime: formatDateTime(form.extendEndTime),
+        enrollmentStartTime: formatDateTimeForApi(form.enrollmentStartTime),
+        enrollmentEndTime: formatDateTimeForApi(form.enrollmentEndTime),
+        startTime: formatDateTimeForApi(form.startTime),
+        expectedEndTime: formatDateTimeForApi(form.extendEndTime),
         maxParticipants: form.maxParticipants,
-        attachment: form.attachments.map(f => f.raw).filter((f): f is File => !!f),
+        attachment: form.attachments.map(f => f.raw).filter(Boolean) as File[],
         participants: [],
         duration: form.duration,
         coverFile: form.coverImage
@@ -135,16 +123,7 @@ const handleCancel = () => {
 
 <template>
   <div class="add-activity-page">
-    <div class="page-header">
-      <div class="header-content">
-        <h1 class="title">发布新活动</h1>
-        <p class="subtitle">创建并发布新的志愿活动，邀请更多志愿者参与</p>
-      </div>
-      <div class="header-decoration">
-        <div class="circle circle-1"></div>
-        <div class="circle circle-2"></div>
-      </div>
-    </div>
+    <PageHeader title="发布新活动" subtitle="创建并发布新的志愿活动，邀请更多志愿者参与" />
 
     <el-card class="form-container" shadow="hover">
       <el-form
@@ -154,7 +133,6 @@ const handleCancel = () => {
         label-width="120px"
         label-position="right"
       >
-        <!-- Basic Info Section -->
         <el-divider content-position="left">
           <span class="section-title">基本信息</span>
         </el-divider>
@@ -227,7 +205,6 @@ const handleCancel = () => {
           </el-upload>
         </el-form-item>
 
-        <!-- Time & Capacity Section -->
         <el-divider content-position="left">
           <span class="section-title">时间与名额</span>
         </el-divider>
@@ -312,168 +289,50 @@ const handleCancel = () => {
 .add-activity-page {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 24px 28px;
   min-height: 80vh;
+  background: var(--page-bg);
 }
-
-/* Header */
-.page-header {
-  background: linear-gradient(135deg, #409eff 0%, #3a8ee6 100%);
-  border-radius: 16px;
-  padding: 40px;
-  margin-bottom: 30px;
-  color: white;
-  position: relative;
-  overflow: hidden;
-  box-shadow: 0 10px 20px rgba(64, 158, 255, 0.2);
-}
-
-.header-content {
-  position: relative;
-  z-index: 2;
-}
-
-.title {
-  font-size: 32px;
-  font-weight: 700;
-  margin: 0 0 10px 0;
-  letter-spacing: 1px;
-}
-
-.subtitle {
-  font-size: 16px;
-  opacity: 0.9;
-  margin: 0;
-}
-
-.header-decoration .circle {
-  position: absolute;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.circle-1 {
-  width: 200px;
-  height: 200px;
-  top: -50px;
-  right: -50px;
-}
-
-.circle-2 {
-  width: 100px;
-  height: 100px;
-  bottom: -20px;
-  right: 100px;
-}
-
 .form-container {
-  border-radius: 12px;
-  border: none;
+  border-radius: var(--radius-card);
+  border: 1px solid var(--card-border) !important;
+  box-shadow: var(--card-shadow);
   padding: 20px;
 }
-
 .section-title {
   font-size: 1rem;
   font-weight: 600;
   color: var(--el-text-color-regular);
 }
-
-.cover-uploader {
-  display: inline-block;
-}
-
+.cover-uploader { display: inline-block; }
 .cover-uploader :deep(.el-upload) {
-  border: 1px dashed var(--el-border-color);
-  border-radius: 6px;
+  border: 1px dashed var(--card-border);
+  border-radius: 10px;
   cursor: pointer;
   position: relative;
   overflow: hidden;
-  transition: var(--el-transition-duration-fast);
+  transition: var(--transition-base);
   width: 178px;
   height: 178px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
-
-.cover-uploader :deep(.el-upload:hover) {
-  border-color: var(--el-color-primary);
-}
-
+.cover-uploader :deep(.el-upload:hover) { border-color: var(--brand-500); }
 .cover-uploader-icon {
   font-size: 28px;
   color: var(--el-text-color-placeholder);
 }
-
-.cover-image {
-  width: 178px;
-  height: 178px;
-  object-fit: cover;
-  display: block;
-}
-
-.upload-tip {
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-  margin-top: 8px;
-}
-
+.cover-image { width: 178px; height: 178px; object-fit: cover; display: block; }
+.upload-tip { font-size: 12px; color: #94a3b8; margin-top: 8px; }
 @media (max-width: 768px) {
-  .add-activity-page {
-    padding: 10px;
-  }
-
-  .page-header {
-    padding: 24px;
-    border-radius: 8px;
-  }
-  
-  .header-decoration {
-    display: none;
-  }
-  
-  .title {
-    font-size: 24px;
-  }
-  
-  .subtitle {
-    font-size: 14px;
-  }
-  
-  .form-container {
-    padding: 10px;
-    border-radius: 8px;
-  }
-  
-  .cover-uploader :deep(.el-upload) {
-    width: 100%;
-    max-width: 300px;
-  }
-  
-  .cover-image {
-    width: 100%;
-    height: auto;
-  }
-  
-  .input-wrapper {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  
-  .hint-text {
-    margin-top: 5px;
-    font-size: 12px;
-  }
-  
-  .form-actions {
-    display: flex;
-    flex-direction: column; 
-  }
-  
-  .action-btn {
-    width: 100%;
-    margin: 5px 0 !important;
-  }
+  .add-activity-page { padding: 16px; }
+  .form-container { padding: 10px; border-radius: 10px; }
+  .cover-uploader :deep(.el-upload) { width: 100%; max-width: 300px; }
+  .cover-image { width: 100%; height: auto; }
+  .input-wrapper { display: flex; flex-direction: column; align-items: flex-start; }
+  .hint-text { margin-top: 5px; font-size: 12px; }
+  .form-actions { display: flex; flex-direction: column; }
+  .action-btn { width: 100%; margin: 5px 0 !important; }
 }
 </style>

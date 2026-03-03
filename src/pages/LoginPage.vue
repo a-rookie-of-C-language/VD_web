@@ -4,7 +4,6 @@ import { ElMessage } from 'element-plus'
 import router from "@/router"
 import { userService } from '@/services/userService'
 import logoImage from '@/image/logo.png'
-import footerIcon from '@/image/footer-icon.jpg'
 
 const studentId = ref('')
 const password = ref('')
@@ -27,175 +26,303 @@ async function handleLogin() {
 </script>
 
 <template>
-  <div class="login-container">
-    <div class="login-content">
-      <div class="logo-container">
-        <img :src="logoImage" alt="Logo" class="logo" />
+  <div class="login-page">
+    <div class="login-left">
+      <div class="brand-block">
+        <div class="brand-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+            <path d="M12 2L2 7l10 5 10-5-10-5z" fill="currentColor" opacity="0.9"/>
+            <path d="M2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <span class="brand-name">志愿活动管理系统</span>
       </div>
-      <div class="login-card">
-        <h1 class="title">Welcome Login</h1>
+      <div class="hero-copy">
+        <h2 class="hero-title">管理志愿活动<br/>记录每一份奉献</h2>
+        <p class="hero-desc">活动发布 · 报名管理 · 时长统计 · 数据可视化</p>
+      </div>
+      <div class="left-decoration">
+        <div class="deco-circle deco-1" />
+        <div class="deco-circle deco-2" />
+        <div class="deco-circle deco-3" />
+      </div>
+    </div>
 
-        <el-form class="login-form">
+    <div class="login-right">
+      <div class="login-card">
+        <div class="card-logo-row">
+          <img :src="logoImage" alt="Logo" class="card-logo" />
+        </div>
+
+        <div class="card-header">
+          <h1 class="card-title">欢迎登录</h1>
+          <p class="card-hint">请输入您的学号和密码</p>
+        </div>
+
+        <el-form class="login-form" @submit.prevent="handleLogin">
           <el-form-item>
             <el-input
-                v-model="studentId"
-                placeholder="Student ID"
-                prefix-icon="User"
-                size="large"
+              v-model="studentId"
+              placeholder="学号"
+              prefix-icon="User"
+              size="large"
+              class="form-input"
             />
           </el-form-item>
 
           <el-form-item>
             <el-input
-                v-model="password"
-                type="password"
-                placeholder="Password"
-                prefix-icon="Lock"
-                show-password
-                size="large"
+              v-model="password"
+              type="password"
+              placeholder="密码"
+              prefix-icon="Lock"
+              show-password
+              size="large"
+              class="form-input"
+              @keyup.enter="handleLogin"
             />
           </el-form-item>
 
           <div class="options-row">
-            <el-checkbox v-model="rememberPassword">Remember Password</el-checkbox>
+            <el-checkbox v-model="rememberPassword">记住密码</el-checkbox>
           </div>
 
           <el-button
-              type="primary"
-              :loading="loading"
-              class="submit-btn"
-              @click="handleLogin"
-              size="large"
+            type="primary"
+            :loading="loading"
+            class="submit-btn"
+            @click="handleLogin"
+            size="large"
           >
-            Login
+            {{ loading ? '登录中...' : '登 录' }}
           </el-button>
         </el-form>
-
-        <div class="footer-image-container">
-          <img :src="footerIcon" class="footer-image" alt="Footer" />
-        </div>
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.login-container {
+.login-page {
   min-height: 100vh;
   width: 100%;
-  background-image: url('../image/login-bg.png');
-  background-size: cover;
-  background-position: center;
+  display: flex;
+  overflow: hidden;
+}
+
+.login-left {
+  flex: 1;
+  background: linear-gradient(145deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 40px 48px;
+  position: relative;
+  overflow: hidden;
+}
+
+.brand-block {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 2;
+  position: relative;
+}
+
+.brand-icon {
+  width: 46px;
+  height: 46px;
+  background: linear-gradient(135deg, #6366f1, #4338ca);
+  border-radius: 13px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: 'Microsoft YaHei', sans-serif;
+  color: white;
+  box-shadow: 0 8px 24px rgba(99,102,241,0.45);
 }
 
-.login-content {
+.brand-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: #e2e8f0;
+  letter-spacing: 0.02em;
+}
+
+.hero-copy {
+  z-index: 2;
   position: relative;
-  width: 100%;
-  height: 100vh;
 }
 
-.logo-container {
+.hero-title {
+  font-size: 38px;
+  font-weight: 800;
+  color: #f8fafc;
+  line-height: 1.25;
+  margin: 0 0 16px 0;
+  letter-spacing: -0.02em;
+}
+
+.hero-desc {
+  font-size: 15px;
+  color: #94a3b8;
+  margin: 0;
+  letter-spacing: 0.05em;
+}
+
+.left-decoration {
   position: absolute;
-  top: 40px;
-  left: 40px;
+  inset: 0;
+  pointer-events: none;
 }
 
-.logo {
-  width: 107px;
-  height: 103px;
-  object-fit: contain;
+.deco-circle {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid rgba(99,102,241,0.15);
+}
+
+.deco-1 {
+  width: 380px;
+  height: 380px;
+  top: -80px;
+  right: -100px;
+  background: radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 70%);
+}
+
+.deco-2 {
+  width: 240px;
+  height: 240px;
+  bottom: 60px;
+  right: 40px;
+  background: radial-gradient(circle, rgba(79,70,229,0.06) 0%, transparent 70%);
+}
+
+.deco-3 {
+  width: 120px;
+  height: 120px;
+  top: 40%;
+  left: -20px;
+  background: radial-gradient(circle, rgba(139,92,246,0.08) 0%, transparent 70%);
+}
+
+.login-right {
+  width: 420px;
+  flex-shrink: 0;
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 32px;
 }
 
 .login-card {
-  position: absolute;
-  top: 50%;
-  right: 5%;
-  transform: translateY(-50%);
-  width: 380px; /* Slightly wider for Element Plus padding */
-  padding: 30px;
-  background: rgba(255, 255, 255, 0.9); /* Add background to make it readable if needed, or keep transparent if design dictates */
-  border-radius: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 360px;
+  background: white;
+  border-radius: 20px;
+  padding: 36px 32px;
+  box-shadow: 0 4px 32px rgba(15,23,42,0.1), 0 1px 4px rgba(15,23,42,0.06);
+  border: 1px solid rgba(226,232,240,0.8);
 }
 
-.title {
-  font-size: 28px;
-  font-weight: 500;
-  color: #1d2129;
-  text-align: center;
+.card-logo-row {
+  display: flex;
+  justify-content: center;
   margin-bottom: 20px;
-  font-family: 'HarmonyOSSansSC-Medium', sans-serif;
+}
+
+.card-logo {
+  width: 60px;
+  height: auto;
+  object-fit: contain;
+}
+
+.card-header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.card-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 6px 0;
+  letter-spacing: -0.02em;
+}
+
+.card-hint {
+  font-size: 13px;
+  color: #94a3b8;
+  margin: 0;
 }
 
 .login-form {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 4px;
+}
+
+.form-input :deep(.el-input__wrapper) {
+  border-radius: 10px;
+  box-shadow: 0 0 0 1px #e2e8f0 inset;
+}
+
+.form-input :deep(.el-input__wrapper:hover) {
+  box-shadow: 0 0 0 1px #a5b4fc inset;
+}
+
+.form-input :deep(.el-input__wrapper.is-focus) {
+  box-shadow: 0 0 0 2px rgba(99,102,241,0.25) inset, 0 0 0 1px #6366f1 inset;
 }
 
 .options-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 10px;
+  margin: 4px 0 16px;
 }
 
 .submit-btn {
   width: 100%;
-  font-size: 16px;
+  height: 46px;
+  border-radius: 11px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  border: none;
+  box-shadow: 0 4px 14px rgba(99,102,241,0.4);
+  transition: all 0.2s ease;
 }
 
-.footer-image-container {
-  margin-top: 20px;
-  text-align: center;
+.submit-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(99,102,241,0.5);
 }
 
-.footer-image {
-  width: 40px;
-  height: 41px;
-  border-radius: 2px;
+.submit-btn:active {
+  transform: translateY(0);
 }
 
 @media (max-width: 768px) {
-  .login-container {
-    background-image: url('../image/login-bg.png'); /* Keep or change if needed */
-    align-items: flex-start; /* Allow scroll if height exceeds viewport */
-    padding: 20px;
-  }
-
-  .login-content {
-    height: auto;
-    display: flex;
+  .login-page {
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
   }
 
-  .logo-container {
-    position: static;
-    margin-bottom: 30px;
-    margin-top: 20px;
-    text-align: center;
+  .login-left {
+    padding: 28px 24px 32px;
+    flex: none;
+    min-height: 220px;
   }
 
-  .logo {
-    width: 80px;
-    height: auto;
+  .hero-title {
+    font-size: 26px;
   }
 
-  .login-card {
-    position: static;
-    transform: none;
+  .login-right {
     width: 100%;
-    max-width: 380px;
-    margin: 0 auto;
+    flex: 1;
+    padding: 28px 20px;
   }
 }
 </style>

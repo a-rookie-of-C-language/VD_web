@@ -7,7 +7,6 @@ const userStore = useUserStore()
 
 onMounted(async () => {
   const token = localStorage.getItem('token')
-  // 有 token 时加载用户信息（loadUserInfo 内部会处理缓存）
   if (token) {
     console.log('[MainLayout] Loading user info...')
     await userStore.loadUserInfo()
@@ -22,7 +21,11 @@ onMounted(async () => {
       <Sidebar />
     </el-aside>
     <el-main class="content-area">
-      <router-view />
+      <router-view v-slot="{ Component }">
+        <transition name="fade-slide" mode="out-in">
+          <component :is="Component" />
+        </transition>
+      </router-view>
     </el-main>
   </el-container>
 </template>
@@ -30,15 +33,35 @@ onMounted(async () => {
 <style scoped>
 .main-layout {
   height: 100vh;
+  width: 100%;
+  overflow: hidden;
 }
 
 .content-area {
-  background-color: #f9fafb;
+  background-color: var(--page-bg);
   overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0;
 }
 
 .app-sidebar {
-  width: 260px;
+  width: 240px;
+  flex-shrink: 0;
+}
+
+.fade-slide-enter-active,
+.fade-slide-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.fade-slide-enter-from {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.fade-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
 }
 
 @media (max-width: 768px) {
@@ -49,7 +72,7 @@ onMounted(async () => {
   .main-layout :deep(.el-aside) {
     width: 100% !important;
     height: auto !important;
-    order: 2; /* Move to bottom */
+    order: 2;
     flex-shrink: 0;
     z-index: 1000;
   }
@@ -58,7 +81,7 @@ onMounted(async () => {
     order: 1;
     flex: 1;
     overflow-y: auto;
-    padding-bottom: 60px; /* Prevent content from being hidden behind nav if fixed, though flex shouldn't hide it */
+    padding-bottom: 60px;
   }
 }
 </style>

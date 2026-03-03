@@ -1,8 +1,5 @@
 import { httpRequest } from './http'
-
-const API_BASE_URL = import.meta.env.DEV
-    ? 'http://localhost:8080/api'
-    : 'https://unscreenable-cathrine-unprejudicially.ngrok-free.dev/api'
+import { API_BASE_URL } from '@/config'
 
 export interface Suggestion {
     id: string
@@ -23,44 +20,36 @@ export interface SuggestionListResponse {
 
 export const suggestionService = {
     async createSuggestion(data: { title: string; content: string }): Promise<void> {
-        const token = localStorage.getItem('token')
-        await httpRequest<any>({
+        await httpRequest<{ code: number; message: string }>({
             method: 'post',
             url: `${API_BASE_URL}/suggestions`,
-            data,
-            headers: { Authorization: `Bearer ${String(token || '')}` }
+            data
         })
     },
 
     async getMySuggestions(page: number = 1, pageSize: number = 10): Promise<SuggestionListResponse> {
-        const token = localStorage.getItem('token')
         const res = await httpRequest<{ data: SuggestionListResponse }>({
             method: 'get',
             url: `${API_BASE_URL}/suggestions/my`,
-            params: { page, pageSize },
-            headers: { Authorization: `Bearer ${String(token || '')}` }
+            params: { page, pageSize }
         })
         return res.data || { items: [], total: 0 }
     },
 
     async getAllSuggestions(page: number = 1, pageSize: number = 10, status?: string): Promise<SuggestionListResponse> {
-        const token = localStorage.getItem('token')
         const res = await httpRequest<{ data: SuggestionListResponse }>({
             method: 'get',
             url: `${API_BASE_URL}/suggestions`,
-            params: { page, pageSize, status },
-            headers: { Authorization: `Bearer ${String(token || '')}` }
+            params: { page, pageSize, status }
         })
         return res.data || { items: [], total: 0 }
     },
 
     async replySuggestion(id: string, replyContent: string): Promise<void> {
-        const token = localStorage.getItem('token')
-        await httpRequest<any>({
+        await httpRequest<{ code: number; message: string }>({
             method: 'post',
             url: `${API_BASE_URL}/suggestions/${id}/reply`,
-            data: { replyContent },
-            headers: { Authorization: `Bearer ${String(token || '')}` }
+            data: { replyContent }
         })
     }
 }

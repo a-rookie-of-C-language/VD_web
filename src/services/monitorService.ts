@@ -1,6 +1,6 @@
 import { httpRequest } from './http'
+import {API_BASE_URL} from "@/config.ts";
 
-const API_BASE_URL = 'https://unscreenable-cathrine-unprejudicially.ngrok-free.dev/api'
 
 export interface MonitorOverview {
     totalUsers: number
@@ -70,33 +70,28 @@ export interface UserStatItem {
 
 export const monitorService = {
     async getFilterOptions(): Promise<{ colleges: string[], grades: string[], clazzes: string[] }> {
-        const token = localStorage.getItem('token')
         try {
             const res = await httpRequest<{
                 code: number
                 data: { colleges: string[], grades: string[], clazzes: string[] }
             }>({
                 method: 'get',
-                url: `${API_BASE_URL}/monitoring/filters`,
-                headers: { Authorization: `Bearer ${String(token || '')}` }
+                url: `${API_BASE_URL}/monitoring/filters`
             })
             return res.data
-        } catch (e) {
-            console.warn('Failed to fetch filters from backend, returning empty.', e)
+        } catch {
             return { colleges: [], grades: [], clazzes: [] }
         }
     },
 
     async getUserStats(params: UserStatsParams): Promise<{ total: number, records: UserStatItem[] }> {
-        const token = localStorage.getItem('token')
         const res = await httpRequest<{
             code: number
             data: { total: number, records: UserStatItem[] }
         }>({
             method: 'post',
             url: `${API_BASE_URL}/monitoring/user-stats`,
-            data: params,
-            headers: { Authorization: `Bearer ${String(token || '')}` }
+            data: params
         })
         return res.data
     },
@@ -105,15 +100,10 @@ export const monitorService = {
         timeRange: string = 'monthly',
         filters: { clazz?: string; grade?: string; college?: string } = {}
     ): Promise<MonitorDashboardData> {
-        const token = localStorage.getItem('token')
-        const params: any = { timeRange, ...filters }
-        
-        // Remove undefined or empty filters
-        Object.keys(params).forEach(key => {
-            if (params[key] === undefined || params[key] === '') {
-                delete params[key]
-            }
-        })
+        const params: Record<string, string> = { timeRange }
+        if (filters.clazz) params.clazz = filters.clazz
+        if (filters.grade) params.grade = filters.grade
+        if (filters.college) params.college = filters.college
 
         const res = await httpRequest<{
             code: number
@@ -122,8 +112,7 @@ export const monitorService = {
         }>({
             method: 'get',
             url: `${API_BASE_URL}/monitoring/dashboard`,
-            params,
-            headers: { Authorization: `Bearer ${String(token || '')}` }
+            params
         })
         return res.data
     }

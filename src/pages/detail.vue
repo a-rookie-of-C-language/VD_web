@@ -7,7 +7,7 @@ import { activityService } from '@/services/activityService'
 import type { Activity } from '@/entity/Activity'
 import { ActivityStatus } from '@/entity/ActivityStatus'
 import { useUserStore } from '@/stores/useUserStore'
-import { getActivityTypeLabel, getActivityStatusLabel, getAttachmentUrl } from '@/util/util'
+import { getActivityTypeLabel, getActivityStatusLabel, getAttachmentUrl, getCoverImageUrl } from '@/util/util'
 import defaultActivityImage from '@/image/activity-card-bg.png'
 
 
@@ -192,7 +192,7 @@ onMounted(() => {
       <!-- Banner -->
       <div class="banner-section">
         <el-image
-          :src="activity.CoverImage || defaultActivityImage"
+          :src="activity.CoverImage ? getCoverImageUrl(activity.CoverImage) : defaultActivityImage"
           class="banner-image"
           fit="cover"
           :alt="activity.name"
@@ -323,246 +323,163 @@ onMounted(() => {
 <style scoped>
 .detail-page {
   min-height: 100vh;
-  background-color: #f5f7fa;
-  padding: 20px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  padding: 30px 5%;
 }
-
 .page-header {
   max-width: 1200px;
-  margin: 0 auto 20px;
+  margin: 0 auto 24px;
+  display: flex;
+  align-items: center;
 }
-
 .back-btn {
   font-size: 16px;
-  color: #606266;
+  color: #64748b;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 20px;
+  transition: all 0.3s ease;
 }
-
 .back-btn:hover {
-  color: #409eff;
+  color: var(--brand-600);
+  background: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
-
-.content-container {
-  max-width: 1200px;
-  margin: 0 auto;
+.content-container { max-width: 1200px; margin: 0 auto; animation: fadeUp 0.5s ease; }
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
-
 .banner-section {
   position: relative;
-  height: 300px;
-  border-radius: 12px;
+  height: 360px;
+  border-radius: 24px;
   overflow: hidden;
-  margin-bottom: 24px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  margin-bottom: 30px;
+  box-shadow: 0 20px 40px -10px rgba(0,0,0,0.15);
 }
-
-.banner-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
+.banner-image { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease; }
+.banner-section:hover .banner-image { transform: scale(1.03); }
 .banner-overlay {
   position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  padding: 30px;
-  background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+  bottom: 0; left: 0; right: 0;
+  padding: 40px 30px 30px;
+  background: linear-gradient(to top, rgba(15, 23, 42, 0.9) 0%, rgba(15, 23, 42, 0.4) 60%, transparent 100%);
   color: white;
+  backdrop-filter: blur(4px);
 }
-
 .activity-title {
-  font-size: 32px;
+  font-size: 38px;
   margin: 0 0 16px 0;
-  font-weight: 600;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.4);
 }
-
-.activity-meta {
-  display: flex;
-  gap: 12px;
-}
-
+.activity-meta { display: flex; gap: 12px; align-items: center; }
 .main-content {
   display: grid;
-  grid-template-columns: 350px 1fr;
-  gap: 24px;
+  grid-template-columns: 380px 1fr;
+  gap: 30px;
 }
-
 .info-card {
-  border-radius: 8px;
-  border: none;
+  border-radius: 20px;
+  border: none !important;
+  box-shadow: 0 10px 30px -5px rgba(0,0,0,0.08);
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
 }
-
-.card-header {
-  font-weight: 600;
-  font-size: 16px;
-}
-
+.card-header { font-weight: 700; font-size: 18px; color: #1e293b; display: flex; align-items: center; gap: 8px; }
 .info-item {
   display: flex;
   align-items: flex-start;
-  margin-bottom: 20px;
-  line-height: 1.5;
+  margin-bottom: 24px;
+  line-height: 1.6;
+  padding: 12px;
+  background: #f8fafc;
+  border-radius: 12px;
+  transition: background 0.3s;
 }
-
-.info-item .el-icon {
-  margin-top: 3px;
-  margin-right: 8px;
-  color: #909399;
-}
-
-.label {
-  color: #606266;
-  margin-right: 8px;
-  white-space: nowrap;
-}
-
-.value {
-  color: #303133;
-  font-weight: 500;
-}
-
-.time-block {
-  display: flex;
-  flex-direction: column;
-  color: #303133;
-  font-size: 14px;
-}
-
-.to {
-  color: #909399;
-  font-size: 12px;
-  margin: 2px 0;
-}
-
-.ml-2 {
-  margin-left: 8px;
-}
-
-.mt-4 {
-  margin-top: 16px;
-}
-
-.action-area {
-  margin-top: 30px;
-}
-
+.info-item:hover { background: #f1f5f9; }
+.info-item .el-icon { margin-top: 2px; margin-right: 12px; color: var(--brand-500); font-size: 18px; }
+.label { color: #64748b; margin-right: 8px; font-weight: 500; white-space: nowrap; }
+.value { color: #0f172a; font-weight: 600; }
+.time-block { display: flex; flex-direction: column; color: #0f172a; font-size: 14px; font-weight: 500; }
+.to { color: #94a3b8; font-size: 12px; margin: 4px 0; font-weight: normal; }
+.ml-2 { margin-left: 8px; }
+.mt-4 { margin-top: 20px; }
+.action-area { margin-top: 30px; }
 .enroll-btn {
   width: 100%;
-  font-weight: 600;
+  height: 54px;
+  border-radius: 16px;
+  font-size: 16px;
+  font-weight: 700;
   letter-spacing: 1px;
+  background: linear-gradient(135deg, var(--brand-500), var(--brand-600));
+  border: none;
+  box-shadow: 0 8px 16px -4px rgba(var(--brand-500-rgb, 59, 130, 246), 0.4);
+  transition: all 0.3s ease;
 }
-
+.enroll-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 20px -4px rgba(var(--brand-500-rgb, 59, 130, 246), 0.5);
+}
+.enroll-btn:disabled { background: #cbd5e1; box-shadow: none; transform: none; }
 .description-card {
   min-height: 400px;
-  border-radius: 8px;
-  border: none;
+  border-radius: 20px;
+  border: none !important;
+  box-shadow: 0 10px 30px -5px rgba(0,0,0,0.08);
   background: white;
+  padding: 10px;
 }
-
 .section-title {
-  font-size: 20px;
-  margin: 0 0 20px 0;
-  padding-bottom: 12px;
-  border-bottom: 1px solid #ebeef5;
-  color: #303133;
+  font-size: 22px;
+  margin: 0 0 24px 0;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #f1f5f9;
+  color: #1e293b;
+  font-weight: 700;
 }
-
 .description-content {
   font-size: 16px;
   line-height: 1.8;
-  color: #606266;
+  color: #334155;
   white-space: pre-wrap;
 }
-
+.attachment-list { display: flex; flex-direction: column; gap: 12px; }
 .attachment-item {
   display: flex;
   align-items: center;
-  padding: 8px 0;
-  border-bottom: 1px solid #ebeef5;
+  padding: 12px 16px;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  transition: all 0.2s;
 }
-
-.attachment-item:last-child {
-  border-bottom: none;
-}
-
-.attachment-item .el-icon {
-  margin-right: 8px;
-  color: #909399;
-}
-
+.attachment-item:hover { border-color: var(--brand-300); background: #f0f9ff; }
+.attachment-item .el-icon { margin-right: 12px; color: var(--brand-500); font-size: 18px; }
 .filename {
   flex: 1;
   font-size: 14px;
-  color: #606266;
+  font-weight: 500;
+  color: #334155;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-
 @media (max-width: 900px) {
-  .main-content {
-    grid-template-columns: 1fr;
-    gap: 16px;
-  }
-  
-  .banner-section {
-    height: 200px;
-    margin-bottom: 20px;
-  }
-  
-  .activity-title {
-    font-size: 24px;
-    margin-bottom: 10px;
-  }
-  
-  .banner-overlay {
-    padding: 20px;
-  }
+  .main-content { grid-template-columns: 1fr; gap: 24px; }
+  .banner-section { height: 260px; margin-bottom: 24px; border-radius: 16px; }
+  .activity-title { font-size: 28px; margin-bottom: 12px; }
+  .banner-overlay { padding: 24px; }
 }
-
 @media (max-width: 600px) {
-  .detail-page {
-    padding: 10px;
-  }
-
-  .banner-section {
-    height: 180px;
-    border-radius: 8px;
-  }
-
-  .activity-title {
-    font-size: 20px;
-  }
-  
-  .activity-meta {
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-  
-  /* Make tags smaller */
-  .activity-meta .el-tag {
-    height: 24px;
-    padding: 0 8px;
-    font-size: 12px;
-  }
-
-  .info-column {
-    order: 2; /* Put info after description if desired, or keep as is. Usually info is important so keep it top */
-  }
-
-  .action-area {
-    margin-top: 20px;
-  }
-  
-  .enroll-btn {
-    height: 40px;
-    font-size: 14px;
-  }
-  
-  .description-card {
-    min-height: auto;
-  }
+  .detail-page { padding: 16px; }
+  .banner-section { height: 200px; }
+  .activity-title { font-size: 22px; }
+  .activity-meta { flex-wrap: wrap; gap: 8px; }
+  .info-item { flex-direction: column; align-items: flex-start; }
+  .info-item .el-icon { margin-bottom: 8px; }
 }
 </style>

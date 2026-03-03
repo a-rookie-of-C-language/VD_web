@@ -12,8 +12,6 @@ import {
   Files,
   Upload,
   ChatDotRound,
-  Calendar,
-  DocumentAdd
 } from '@element-plus/icons-vue'
 import {ElMessage, ElMessageBox} from 'element-plus'
 import {useUserStore} from '@/stores/useUserStore'
@@ -24,11 +22,9 @@ const userStore = useUserStore()
 
 const currentPath = computed(() => route.path)
 
-
 const handleSelect = (index: string) => {
   router.push(index)
 }
-
 
 const roleLabels: Record<string, string> = {
   user: '普通用户',
@@ -47,13 +43,13 @@ interface MenuItem {
 const allMenuItems: MenuItem[] = [
   {index: '/app/activities', label: '活动列表', icon: Files},
   {index: '/app/add-activity', label: '发布活动', icon: Plus, roles: ['functionary']},
-  {index: '/app/import-activity', label: '后台导入', icon: Upload, roles: ['functionary', 'admin', 'superAdmin']},
-  {index: '/app/my-projects', label: '我的项目', icon: Document, roles: ['functionary', 'superAdmin']},
-  {index: '/app/request-hours', label: '申请时长', icon: Document},
+  {index: '/app/import-activity', label: '后台导入', icon: Upload, roles: ['functionary', 'admin']},
+  {index: '/app/my-projects', label: '我的项目', icon: Document, roles: ['functionary','admin']},
+  {index: '/app/request-hours', label: '申请时长', icon: Document, roles: ['user']},
   {index: '/app/suggestion-box', label: '意见反馈', icon: ChatDotRound},
-  {index: '/app/admin-review', label: '管理员审核', icon: Document, roles: ['admin', 'superAdmin']},
+  {index: '/app/admin-review', label: '管理员审核', icon: Document, roles: ['admin']},
   {index: '/app/system-monitor', label: '系统监控', icon: Monitor, roles: ['superAdmin']},
-  {index: '/app/my-stats', label: '我的时长', icon: DataLine}
+  {index: '/app/my-stats', label: '我的时长', icon: DataLine, roles: ['user']}
 ]
 
 const visibleMenuItems = computed(() => {
@@ -71,17 +67,15 @@ const handleLogout = async () => {
       cancelButtonText: '取消',
       type: 'warning'
     })
-
     userStore.clearUser()
     ElMessage.success('已退出登录')
     await router.push('/')
   } catch {
-    // User cancelled
+    // cancelled
   }
 }
 
 const isMobile = ref(false)
-
 const checkMobile = () => {
   isMobile.value = window.innerWidth <= 768
 }
@@ -89,7 +83,6 @@ const checkMobile = () => {
 const showUserDrawer = ref(false)
 
 onMounted(() => {
-  // Only load user info if token exists
   const token = localStorage.getItem('token')
   if (token && !userStore.currentUser) {
     userStore.loadUserInfo()
@@ -98,7 +91,6 @@ onMounted(() => {
   window.addEventListener('resize', checkMobile)
 })
 
-// Watch for route changes to refresh user info (e.g., after login)
 watch(() => route.path, () => {
   const token = localStorage.getItem('token')
   if (token && !userStore.currentUser) {
@@ -108,326 +100,380 @@ watch(() => route.path, () => {
 </script>
 
 <template>
-  <el-menu
-      :default-active="currentPath"
-      class="sidebar-menu"
-      :mode="isMobile ? 'horizontal' : 'vertical'"
-      :ellipsis="false"
-      @select="handleSelect"
-  >
-    <div class="logo-container" v-if="!isMobile">
-      <h1 class="logo-text">志愿活动管理</h1>
-    </div>
-
-    <div class="menu-items-wrapper">
-      <el-menu-item
-          v-for="item in visibleMenuItems"
-          :key="item.index"
-          :index="item.index"
-          class="custom-menu-item"
-      >
-        <div class="menu-item-content">
-          <el-icon>
-            <component :is="item.icon"/>
-          </el-icon>
-          <span>{{ item.label }}</span>
-        </div>
-      </el-menu-item>
-
-    </div>
-
-    <!-- User Info Section at Bottom (Desktop) -->
-    <div class="user-info-container" v-if="!isMobile">
-      <el-divider/>
-      <div v-if="userStore.currentUser" class="user-info">
-        <div class="user-avatar">
-          <el-icon :size="24">
-            <UserIcon/>
-          </el-icon>
-        </div>
-        <div class="user-details">
-          <div class="user-name">{{ userStore.username.value }}</div>
-          <div class="user-student-no">学号: {{ userStore.studentNo.value }}</div>
-          <el-tag :type="userStore.role.value === 'admin'
-          || userStore.role.value === 'superAdmin' ? 'danger'
-          : userStore.role.value === 'functionary' ? 'warning'
-          : 'info'" size="small" class="user-role">
-            {{ roleLabels[userStore.role.value || 'user'] || userStore.role.value }}
-          </el-tag>
-        </div>
-        <el-button
-            :icon="SwitchButton"
-            circle
-            size="small"
-            @click.stop="handleLogout"
-            title="退出登录"
-            class="logout-btn"
-        />
+  <!-- Desktop Sidebar -->
+  <nav class="sidebar" v-if="!isMobile">
+    <div class="sidebar-logo">
+      <div class="logo-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <path d="M12 2L2 7l10 5 10-5-10-5z" fill="currentColor" opacity="0.9"/>
+          <path d="M2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
       </div>
-      <div v-else-if="userStore.isLoading" class="user-info-loading">
-        <el-icon class="is-loading">
-          <Loading/>
-        </el-icon>
+      <span class="logo-label">志愿活动管理</span>
+    </div>
+
+    <div class="sidebar-nav">
+      <button
+        v-for="item in visibleMenuItems"
+        :key="item.index"
+        class="nav-item"
+        :class="{ 'nav-item--active': currentPath === item.index }"
+        @click="handleSelect(item.index)"
+      >
+        <span class="nav-icon">
+          <el-icon><component :is="item.icon" /></el-icon>
+        </span>
+        <span class="nav-label">{{ item.label }}</span>
+        <span v-if="currentPath === item.index" class="nav-active-bar" />
+      </button>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="user-card" v-if="userStore.currentUser">
+        <div class="user-avatar">
+          <el-icon :size="18"><UserIcon /></el-icon>
+        </div>
+        <div class="user-info">
+          <div class="user-name">{{ userStore.username.value }}</div>
+          <div class="user-meta">
+            <el-tag
+              :type="userStore.role.value === 'admin' || userStore.role.value === 'superAdmin' ? 'danger'
+                : userStore.role.value === 'functionary' ? 'warning' : 'info'"
+              size="small"
+              effect="plain"
+              class="role-tag"
+            >
+              {{ roleLabels[userStore.role.value || 'user'] || userStore.role.value }}
+            </el-tag>
+          </div>
+        </div>
+        <button class="logout-btn" @click.stop="handleLogout" title="退出登录">
+          <el-icon :size="15"><SwitchButton /></el-icon>
+        </button>
+      </div>
+      <div class="user-card-loading" v-else-if="userStore.isLoading">
+        <el-icon class="is-loading"><Loading /></el-icon>
         <span>加载中...</span>
       </div>
-      <div v-else class="user-info-placeholder">
-        <el-icon :size="20">
-          <UserIcon/>
-        </el-icon>
+      <div class="user-card-placeholder" v-else>
+        <el-icon><UserIcon /></el-icon>
         <span>未登录</span>
       </div>
     </div>
+  </nav>
 
-    <!-- Mobile User Drawer -->
-    <el-drawer
-        v-model="showUserDrawer"
-        title="用户信息"
-        direction="btt"
-        size="50%"
-        :with-header="true"
-        append-to-body
-        class="mobile-user-drawer"
+  <!-- Mobile Bottom Nav -->
+  <nav class="mobile-nav" v-else>
+    <button
+      v-for="item in visibleMenuItems"
+      :key="item.index"
+      class="mobile-nav-item"
+      :class="{ 'mobile-nav-item--active': currentPath === item.index }"
+      @click="handleSelect(item.index)"
     >
-      <div class="drawer-user-content">
-        <div v-if="userStore.currentUser" class="mobile-user-info">
-          <div class="mobile-avatar">
-            <el-icon :size="50">
-              <UserIcon/>
-            </el-icon>
-          </div>
-          <h3 class="mobile-username">{{ userStore.username.value }}</h3>
-          <p class="mobile-student-no">学号: {{ userStore.studentNo.value }}</p>
-          <el-tag :type="userStore.role.value === 'admin'
-            || userStore.role.value === 'superAdmin' ? 'danger'
-            : userStore.role.value === 'functionary' ? 'warning'
-            : 'info'" class="mobile-role">
-            {{ roleLabels[userStore.role.value || 'user'] || userStore.role.value }}
-          </el-tag>
+      <el-icon :size="22"><component :is="item.icon" /></el-icon>
+      <span>{{ item.label }}</span>
+    </button>
+  </nav>
 
-          <el-button type="danger" plain class="mobile-logout-btn" @click="handleLogout" :icon="SwitchButton">
-            退出登录
-          </el-button>
+  <!-- Mobile User Drawer -->
+  <el-drawer
+    v-model="showUserDrawer"
+    title="用户信息"
+    direction="btt"
+    size="50%"
+    :with-header="true"
+    append-to-body
+  >
+    <div class="drawer-content">
+      <div v-if="userStore.currentUser" class="drawer-user">
+        <div class="drawer-avatar">
+          <el-icon :size="40"><UserIcon /></el-icon>
         </div>
-        <div v-else class="mobile-login-prompt">
-          <p>您尚未登录</p>
-          <el-button type="primary" @click="$router.push('/')">去登录</el-button>
-        </div>
+        <h3>{{ userStore.username.value }}</h3>
+        <p>学号: {{ userStore.studentNo.value }}</p>
+        <el-tag
+          :type="userStore.role.value === 'admin' || userStore.role.value === 'superAdmin' ? 'danger'
+            : userStore.role.value === 'functionary' ? 'warning' : 'info'"
+        >
+          {{ roleLabels[userStore.role.value || 'user'] || userStore.role.value }}
+        </el-tag>
+        <el-button type="danger" plain @click="handleLogout" :icon="SwitchButton" style="margin-top:20px;width:80%">
+          退出登录
+        </el-button>
       </div>
-    </el-drawer>
-  </el-menu>
+      <div v-else class="drawer-login-prompt">
+        <p>您尚未登录</p>
+        <el-button type="primary" @click="$router.push('/')">去登录</el-button>
+      </div>
+    </div>
+  </el-drawer>
 </template>
 
 <style scoped>
-
-.sidebar-menu {
+.sidebar {
+  width: 240px;
   height: 100vh;
-  border-right: 1px solid var(--el-menu-border-color);
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--sidebar-border);
   display: flex;
   flex-direction: column;
+  padding: 0;
+  overflow: hidden;
 }
 
-.menu-items-wrapper {
-  display: flex;
-  flex-direction: column;
-  flex: 1; /* Take up available space */
-}
-
-.logo-container {
-  padding: 1.5rem 1rem;
-  margin-bottom: 1rem;
-  border-bottom: 1px solid var(--el-border-color-lighter);
-}
-
-.logo-text {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--el-text-color-primary);
-  letter-spacing: -0.025em;
-  margin: 0;
-}
-
-.el-menu-item {
-  font-size: 0.95rem;
-}
-
-.user-info-container {
-  margin-top: auto;
-  padding: 0 1rem 1rem;
-}
-
-.user-info {
+.sidebar-logo {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem;
-  background-color: var(--el-fill-color-light);
-  border-radius: 8px;
-}
-
-.user-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background-color: var(--el-color-primary-light-9);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--el-color-primary);
+  gap: 10px;
+  padding: 22px 20px 18px;
+  border-bottom: 1px solid var(--sidebar-border);
   flex-shrink: 0;
 }
 
-.user-details {
+.logo-icon {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, var(--brand-500) 0%, var(--brand-700) 100%);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(99,102,241,0.35);
+}
+
+.logo-label {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--sidebar-logo-text);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.sidebar-nav {
+  flex: 1;
+  padding: 12px 10px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.sidebar-nav::-webkit-scrollbar {
+  width: 3px;
+}
+.sidebar-nav::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.1);
+  border-radius: 2px;
+}
+
+.nav-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  margin-bottom: 3px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--sidebar-text);
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--transition-base), color var(--transition-base);
+  outline: none;
+}
+
+.nav-item:hover {
+  background: var(--sidebar-item-hover);
+  color: #cbd5e1;
+}
+
+.nav-item--active {
+  background: rgba(99,102,241,0.18);
+  color: #a5b4fc;
+}
+
+.nav-item--active:hover {
+  background: rgba(99,102,241,0.22);
+}
+
+.nav-active-bar {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 20px;
+  background: var(--brand-400);
+  border-radius: 3px 0 0 3px;
+}
+
+.nav-icon {
+  display: flex;
+  align-items: center;
+  font-size: 16px;
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+
+.nav-item--active .nav-icon {
+  opacity: 1;
+}
+
+.nav-label {
+  font-family: var(--el-font-family);
+}
+
+.sidebar-footer {
+  padding: 12px 10px 16px;
+  border-top: 1px solid var(--sidebar-border);
+  flex-shrink: 0;
+}
+
+.user-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 10px;
+  transition: background var(--transition-base);
+}
+
+.user-card:hover {
+  background: rgba(255,255,255,0.07);
+}
+
+.user-avatar {
+  width: 34px;
+  height: 34px;
+  background: linear-gradient(135deg, var(--brand-600) 0%, var(--brand-800) 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #c7d2fe;
+  flex-shrink: 0;
+}
+
+.user-info {
   flex: 1;
   min-width: 0;
 }
 
 .user-name {
-  font-size: 0.9rem;
+  font-size: 12.5px;
   font-weight: 600;
-  color: var(--el-text-color-primary);
-  margin-bottom: 0.25rem;
+  color: #e2e8f0;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  margin-bottom: 3px;
 }
 
-.user-student-no {
-  font-size: 0.75rem;
-  color: var(--el-text-color-secondary);
-  margin-bottom: 0.25rem;
-}
-
-.user-role {
-  margin-top: 0.25rem;
-}
-
-.user-info-loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 1rem;
-  color: var(--el-text-color-secondary);
-  font-size: 0.875rem;
-}
-
-.user-info-placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 1rem;
-  color: var(--el-text-color-placeholder);
-  font-size: 0.875rem;
+.role-tag {
+  font-size: 10px;
 }
 
 .logout-btn {
-  margin-left: auto;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  transition: color var(--transition-base), background var(--transition-base);
   flex-shrink: 0;
 }
 
 .logout-btn:hover {
-  color: var(--el-color-danger);
-  border-color: var(--el-color-danger);
+  color: #f87171;
+  background: rgba(239,68,68,0.1);
 }
 
-@media (max-width: 768px) {
-  .sidebar-menu {
-    flex-direction: row;
-    height: auto;
-    min-height: 60px;
-    border-right: none;
-    border-top: 1px solid var(--el-menu-border-color);
-    width: 100%;
-    background: #fff;
-    padding: 0;
-  }
-
-  .menu-items-wrapper {
-    flex-direction: row;
-    width: 100%;
-    justify-content: space-between;
-    overflow-x: auto; /* Allow scrolling if too many items */
-    -webkit-overflow-scrolling: touch;
-  }
-
-  /* Force override Element Plus menu item styles */
-  :deep(.el-menu-item) {
-    height: 60px !important;
-    line-height: normal !important;
-    padding: 0 4px !important;
-    flex: 0 0 auto; /* Don't shrink, allow scrolling */
-    min-width: 60px; /* Minimum touch target width */
-    display: flex;
-    justify-content: center;
-    border-bottom: none !important;
-  }
-
-  :deep(.el-menu-item.is-active) {
-    border-bottom: 2px solid var(--el-color-primary) !important;
-    /* Or top border if preferred since it's bottom nav */
-  }
-
-  .menu-item-content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-    height: 100%;
-  }
-
-  :deep(.el-menu-item) .el-icon {
-    margin: 0 !important;
-    font-size: 24px;
-  }
-
-
-  :deep(.el-menu-item) span {
-    font-size: 10px;
-    line-height: 1;
-  }
+.user-card-loading,
+.user-card-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  color: #64748b;
+  font-size: 13px;
 }
 
-.mobile-user-info {
+/* Mobile Bottom Nav */
+.mobile-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: rgba(15,17,23,0.95);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid var(--sidebar-border);
+  display: flex;
+  align-items: stretch;
+  z-index: 1000;
+  padding: 0 4px;
+}
+
+.mobile-nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  font-size: 10px;
+  cursor: pointer;
+  transition: color var(--transition-base);
+  padding: 0 2px;
+}
+
+.mobile-nav-item--active {
+  color: var(--brand-400);
+}
+
+.mobile-nav-item:hover {
+  color: #94a3b8;
+}
+
+.drawer-content {
+  padding: 10px 0;
+}
+
+.drawer-user {
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: 20px 0;
+  gap: 10px;
 }
 
-.mobile-avatar {
-  background: var(--el-color-primary-light-9);
-  color: var(--el-color-primary);
-  width: 80px;
-  height: 80px;
+.drawer-avatar {
+  width: 70px;
+  height: 70px;
   border-radius: 50%;
+  background: linear-gradient(135deg, var(--brand-600), var(--brand-800));
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 16px;
+  color: #c7d2fe;
+  margin-bottom: 6px;
 }
 
-.mobile-username {
-  margin: 0 0 8px 0;
-  font-size: 20px;
-  font-weight: 600;
-}
-
-.mobile-student-no {
-  color: var(--el-text-color-secondary);
-  margin: 0 0 16px 0;
-}
-
-.mobile-role {
-  margin-bottom: 24px;
-}
-
-.mobile-logout-btn {
-  width: 80%;
-}
-
-.mobile-login-prompt {
+.drawer-login-prompt {
   text-align: center;
   padding: 40px;
 }

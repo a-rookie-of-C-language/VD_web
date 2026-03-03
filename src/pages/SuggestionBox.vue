@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { Edit, ChatDotRound, RefreshLeft } from '@element-plus/icons-vue'
+import { ElMessage} from 'element-plus'
+import { ChatDotRound, RefreshLeft } from '@element-plus/icons-vue'
 import { suggestionService, type Suggestion } from '@/services/suggestionService'
 import { useUserStore } from '@/stores/useUserStore'
+import PageHeader from '@/components/PageHeader.vue'
 
 const userStore = useUserStore()
 const isAdmin = computed(() => ['admin', 'superAdmin'].includes(userStore.role.value || ''))
@@ -13,19 +14,16 @@ const loading = ref(false)
 const currentPage = ref(1)
 const pageSize = ref(10)
 const total = ref(0)
-const activeTab = ref('list') // 'list' or 'create'
+const activeTab = ref('list')
 
-// Admin filter
 const statusFilter = ref('')
 
-// Create Form
 const createForm = ref({
   title: '',
   content: ''
 })
 const submitting = ref(false)
 
-// Reply Dialog
 const replyDialogVisible = ref(false)
 const currentSuggestion = ref<Suggestion | null>(null)
 const replyContent = ref('')
@@ -59,7 +57,7 @@ const handleCreate = async () => {
     ElMessage.success('提交成功')
     createForm.value = { title: '', content: '' }
     activeTab.value = 'list'
-    fetchData()
+    await fetchData()
   } catch (e) {
     console.error(e)
     ElMessage.error('提交失败')
@@ -81,7 +79,7 @@ const handleReply = async () => {
     await suggestionService.replySuggestion(currentSuggestion.value.id, replyContent.value)
     ElMessage.success('回复成功')
     replyDialogVisible.value = false
-    fetchData()
+    await fetchData()
   } catch (e) {
     console.error(e)
     ElMessage.error('回复失败')
@@ -119,16 +117,11 @@ onMounted(() => {
 
 <template>
   <div class="suggestion-box-page">
-    <div class="page-header">
-      <div class="header-content">
-        <h1 class="title">意见反馈箱</h1>
-        <p class="subtitle">您的建议是我们进步的动力</p>
-      </div>
-      <div class="header-decoration">
-        <div class="circle circle-1"></div>
-        <div class="circle circle-2"></div>
-      </div>
-    </div>
+    <PageHeader
+      title="意见反馈箱"
+      subtitle="您的建议是我们进步的动力"
+      gradient="linear-gradient(135deg, #67c23a 0%, #42b983 100%)"
+    />
 
     <div class="content-container">
       <el-card shadow="hover" class="main-card">
@@ -151,7 +144,6 @@ onMounted(() => {
           </div>
         </template>
 
-        <!-- List View -->
         <div v-if="activeTab === 'list'">
           <el-empty v-if="!loading && suggestions.length === 0" description="暂无反馈记录" />
           
@@ -196,7 +188,6 @@ onMounted(() => {
           </div>
         </div>
 
-        <!-- Create View -->
         <div v-else class="create-form">
           <el-form :model="createForm" label-position="top">
             <el-form-item label="标题">
@@ -218,7 +209,6 @@ onMounted(() => {
       </el-card>
     </div>
 
-    <!-- Reply Dialog -->
     <el-dialog v-model="replyDialogVisible" title="回复反馈" width="500px">
       <div v-if="currentSuggestion" class="reply-dialog-content">
         <div class="original-content">
@@ -244,209 +234,91 @@ onMounted(() => {
 
 <style scoped>
 .suggestion-box-page {
-  max-width: 1000px;
+  max-width: 1100px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 30px 5%;
   min-height: 80vh;
+  animation: fadeUp 0.5s ease;
 }
-
-/* Header */
-.page-header {
-  background: linear-gradient(135deg, #67c23a 0%, #42b983 100%);
-  border-radius: 16px;
-  padding: 40px;
-  margin-bottom: 30px;
-  color: white;
-  position: relative;
-  overflow: hidden;
-  box-shadow: 0 10px 20px rgba(103, 194, 58, 0.2);
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
-
-.header-content {
-  position: relative;
-  z-index: 2;
-}
-
-.title {
-  font-size: 32px;
-  font-weight: 700;
-  margin: 0 0 10px 0;
-  letter-spacing: 1px;
-}
-
-.subtitle {
-  font-size: 16px;
-  opacity: 0.9;
-  margin: 0;
-}
-
-.header-decoration .circle {
-  position: absolute;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.circle-1 {
-  width: 200px;
-  height: 200px;
-  top: -50px;
-  right: -50px;
-}
-
-.circle-2 {
-  width: 100px;
-  height: 100px;
-  bottom: -20px;
-  right: 100px;
-}
-
 .main-card {
-  border-radius: 12px;
-  border: none;
-  min-height: 500px;
+  border-radius: 20px;
+  border: none !important;
+  box-shadow: 0 10px 30px -5px rgba(0,0,0,0.08);
+  min-height: 600px;
+  background: rgba(255, 255, 255, 0.95);
 }
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.admin-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #303133;
-}
-
-.suggestion-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
+.card-header { display: flex; justify-content: space-between; align-items: center; }
+.admin-title { font-size: 20px; font-weight: 700; color: #1e293b; }
+.suggestion-list { display: grid; gap: 20px; grid-template-columns: 1fr; }
 .suggestion-item {
-  border: 1px solid #ebeef5;
-  border-radius: 8px;
-  padding: 16px;
-  transition: all 0.3s;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 24px;
+  background: #ffffff;
+  transition: all 0.3s ease;
+  position: relative;
 }
-
-.suggestion-item:hover {
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+.suggestion-item:hover { 
+  box-shadow: 0 12px 24px -8px rgba(0,0,0,0.1); 
+  transform: translateY(-2px);
+  border-color: #cbd5e1;
 }
-
-.item-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.item-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #303133;
-}
-
-.item-meta {
-  font-size: 12px;
-  color: #909399;
-  margin-bottom: 12px;
-  display: flex;
-  gap: 10px;
-}
-
+.item-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+.item-title { font-size: 18px; font-weight: 700; color: #0f172a; margin-right: 16px; }
+.item-meta { font-size: 13px; color: #64748b; margin-bottom: 16px; display: flex; gap: 16px; align-items: center; }
+.item-meta .author { display: flex; align-items: center; gap: 6px; background: #f1f5f9; padding: 4px 10px; border-radius: 20px; }
 .item-content {
-  font-size: 14px;
-  color: #606266;
-  line-height: 1.6;
+  font-size: 15px;
+  color: #334155;
+  line-height: 1.7;
   white-space: pre-wrap;
-  margin-bottom: 12px;
+  margin-bottom: 20px;
+  background: #f8fafc;
+  padding: 16px;
+  border-radius: 12px;
 }
-
 .reply-section {
-  background-color: #f0f9eb;
-  padding: 12px;
-  border-radius: 6px;
-  margin-top: 10px;
+  background: linear-gradient(145deg, #f0fdf4, #ecfdf5);
+  padding: 20px;
+  border-radius: 12px;
+  border-left: 4px solid var(--accent-500);
+  margin-top: 16px;
 }
-
 .reply-header {
   display: flex;
   align-items: center;
-  font-size: 13px;
-  font-weight: 600;
-  color: #67c23a;
-  margin-bottom: 6px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--accent-600);
+  margin-bottom: 10px;
+  gap: 8px;
 }
-
-.reply-time {
-  font-weight: normal;
-  color: #909399;
-  margin-left: auto;
-  font-size: 12px;
-}
-
-.reply-content {
-  font-size: 14px;
-  color: #5e6d82;
-  line-height: 1.5;
-}
-
+.reply-time { font-weight: 500; color: #64748b; margin-left: auto; font-size: 13px; }
+.reply-content { font-size: 15px; color: #1e293b; line-height: 1.6; }
 .admin-actions {
   display: flex;
   justify-content: flex-end;
-  margin-top: 10px;
-  border-top: 1px solid #f0f2f5;
-  padding-top: 10px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #f1f5f9;
 }
-
-.pagination-container {
-  display: flex;
-  justify-content: center;
-  margin-top: 20px;
-}
-
-.create-form {
-  max-width: 600px;
-  margin: 0 auto;
-  padding: 20px 0;
-}
-
+.pagination-container { display: flex; justify-content: center; margin-top: 30px; }
+.create-form { max-width: 650px; margin: 40px auto; background: #f8fafc; padding: 40px; border-radius: 20px; border: 1px solid #e2e8f0; }
 .original-content {
-  background: #f5f7fa;
-  padding: 10px;
-  border-radius: 4px;
-  margin-bottom: 15px;
+  background: #f8fafc;
+  padding: 16px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  border-left: 4px solid #cbd5e1;
 }
-
-.original-content h4 {
-  margin: 0 0 5px 0;
-  font-size: 14px;
-}
-
-.original-content p {
-  margin: 0;
-  font-size: 13px;
-  color: #606266;
-}
-
+.original-content h4 { margin: 0 0 8px 0; font-size: 16px; color: #1e293b; }
+.original-content p { margin: 0; font-size: 14px; color: #475569; line-height: 1.6; }
 @media (max-width: 768px) {
-  .suggestion-box-page {
-    padding: 10px;
-  }
-  
-  .page-header {
-    padding: 24px;
-    border-radius: 8px;
-  }
-  
-  .header-decoration {
-    display: none;
-  }
-
-  .title {
-    font-size: 24px;
-  }
+  .suggestion-box-page { padding: 16px; }
+  .create-form { padding: 20px; margin: 20px auto; }
 }
 </style>

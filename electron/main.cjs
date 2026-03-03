@@ -12,8 +12,15 @@ function createWindow() {
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,
-            preload: path.join(__dirname, 'preload.cjs')
+            preload: path.join(__dirname, 'preload.cjs'),
+            zoomFactor: 1.0
         }
+    })
+
+    // 禁用缩放
+    win.webContents.on('did-finish-load', () => {
+        win.webContents.setZoomFactor(1.0)
+        win.webContents.setVisualZoomLevelLimits(1, 1)
     })
 
     // 开发环境下加载 Vite 开发服务器地址，生产环境下加载打包后的文件
@@ -68,22 +75,26 @@ app.whenReady().then(() => {
         const {method, url, params, data, headers} = payload || {}
         const mergedHeaders = Object.assign({
             'ngrok-skip-browser-warning': 'true',
-            'User-Agent': 'VolunteerDashboard-Electron'
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0 Safari/537.36'
         }, headers || {})
         try {
+            console.log(`[Main Process] Requesting: ${method || 'get'} ${url}`)
             const res = await axios({
-                method: method || 'get',
-                url,
-                params,
-                data,
-                headers: mergedHeaders,
-                withCredentials: true,
-                validateStatus: () => true
+              method: method || 'get',
+              url,
+              params,
+              data,
+              headers: mergedHeaders,
+              withCredentials: true,
+              validateStatus: () => true,
+              proxy: false
             })
+            console.log(`[Main Process] Response: ${res.status} ${res.statusText}`)
             return {status: res.status, data: res.data, headers: res.headers}
-        } catch (e) {
+          } catch (e) {
+            console.error(`[Main Process] Request Error:`, e.message)
             return {error: e && e.message ? e.message : 'request_failed'}
-        }
+          }
     })
 
     app.on('activate', () => {

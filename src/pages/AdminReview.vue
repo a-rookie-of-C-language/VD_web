@@ -2,16 +2,22 @@
 import { ref, onMounted, watch, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { activityService } from '@/services/activityService'
+import { pendingActivityService } from '@/services/pendingActivityService'
+import { batchImportService } from '@/services/batchImportService'
+import { hourRequestService } from '@/services/hourRequestService'
+import type { BatchImportItem } from '@/services/batchImportService'
 import { userService } from '@/services/userService'
 import type { Activity } from '@/entity/Activity'
 import { ActivityStatus } from '@/entity/ActivityStatus'
-import { getAttachmentUrl } from '@/util/util'
+import { getAttachmentUrl, getCoverImageUrl } from '@/util/util'
+import PageHeader from '@/components/PageHeader.vue'
 
 const activeTab = ref('normal')
 const loading = ref(false)
 const activities = ref<Activity[]>([])
 const pendingActivities = ref<Activity[]>([])
 const personalRequests = ref<Activity[]>([])
+const batchImports = ref<BatchImportItem[]>([])
 
 const fetchUnderReview = async () => {
   loading.value = true
@@ -29,7 +35,7 @@ const fetchUnderReview = async () => {
 const fetchPendingActivities = async () => {
   loading.value = true
   try {
-    const res = await activityService.getPendingActivities()
+    const res = await pendingActivityService.getPendingActivities({ pageSize: 1000 })
     pendingActivities.value = res.items || []
   } catch (e) {
     console.error(e)
@@ -42,10 +48,23 @@ const fetchPendingActivities = async () => {
 const fetchPersonalRequests = async () => {
   loading.value = true
   try {
-    personalRequests.value = await activityService.getPendingRequests()
+    personalRequests.value = await hourRequestService.getPendingRequests()
   } catch (e) {
     console.error(e)
     ElMessage.error('加载个人申请失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+const fetchBatchImports = async () => {
+  loading.value = true
+  try {
+    const result = await batchImportService.getBatchImports()
+    batchImports.value = Array.isArray(result) ? result : []
+  } catch {
+    batchImports.value = []
+    ElMessage.error('加载批量导入列表失败')
   } finally {
     loading.value = false
   }
@@ -56,6 +75,7 @@ const fetchData = () => {
     fetchUnderReview()
   } else if (activeTab.value === 'imported') {
     fetchPendingActivities()
+    fetchBatchImports()
   } else {
     fetchPersonalRequests()
   }
@@ -92,9 +112,9 @@ const approve = async (a: Activity) => {
     if (activeTab.value === 'normal') {
       await activityService.reviewActivity(a.id, true)
     } else if (activeTab.value === 'imported') {
-      await activityService.approvePendingActivity(a.id)
+      await pendingActivityService.approvePendingActivity(a.id)
     } else {
-      await activityService.reviewRequest(a.id, true)
+      await hourRequestService.reviewRequest(a.id, true)
     }
     ElMessage.success('已通过审核')
     detailVisible.value = false
@@ -119,9 +139,9 @@ const reject = async (a: Activity) => {
     if (activeTab.value === 'normal') {
       await activityService.reviewActivity(a.id, false, value)
     } else if (activeTab.value === 'imported') {
-      await activityService.rejectPendingActivity(a.id, value)
+      await pendingActivityService.rejectPendingActivity(a.id, value)
     } else {
-      await activityService.reviewRequest(a.id, false, value)
+      await hourRequestService.reviewRequest(a.id, false, value)
     }
     ElMessage.success('已拒绝')
     detailVisible.value = false
@@ -134,21 +154,46 @@ const reject = async (a: Activity) => {
   }
 }
 
+const approveBatch = async (batch: any) => {
+  try {
+    await ElMessageBox.confirm('确认通过该批量导入申请吗？', '审核通过', { type: 'success' })
+    await batchImportService.approveBatchImport(batch.id)
+    ElMessage.success('已通过审核')
+    fetchData()
+  } catch (e: any) {
+    if (e !== 'cancel') {
+      console.error(e)
+      ElMessage.error('操作失败')
+    }
+  }
+}
+
+const rejectBatch = async (batch: any) => {
+  try {
+    const { value } = await ElMessageBox.prompt('请输入拒绝原因', '审核拒绝', {
+      confirmButtonText: '确认拒绝',
+      cancelButtonText: '取消',
+      inputPattern: /\S+/,
+      inputErrorMessage: '拒绝原因不能为空',
+      type: 'warning'
+    })
+    await batchImportService.rejectBatchImport(batch.id, value)
+    ElMessage.success('已拒绝')
+    fetchData()
+  } catch (e: any) {
+    if (e !== 'cancel') {
+      console.error(e)
+      ElMessage.error('操作失败')
+    }
+  }
+}
+
 onMounted(fetchData)
 </script>
 
 <template>
   <div class="admin-review">
-    <div class="page-header">
-      <div class="header-content">
-        <h1 class="title">管理员审核</h1>
-        <p class="subtitle">审核项目列表，管理志愿活动申请</p>
-      </div>
-      <div class="header-decoration">
-        <div class="circle circle-1"></div>
-        <div class="circle circle-2"></div>
-      </div>
-    </div>
+    <PageHeader title="管理员审核" subtitle="审核项目列表，管理志愿活动申请" />
 
     <el-card class="list-card" shadow="hover">
       <el-tabs v-model="activeTab">
@@ -172,6 +217,28 @@ onMounted(fetchData)
           </el-table>
         </el-tab-pane>
         <el-tab-pane label="导入活动审核" name="imported">
+          <div v-if="batchImports.length > 0" class="batch-imports-section">
+            <h3 style="margin-bottom: 16px;">批量导入申请</h3>
+            <el-table :data="batchImports" v-loading="loading" style="width:100%; margin-bottom: 24px;" class="hidden-xs-only">
+              <el-table-column prop="totalRecords" label="总记录数" width="200" show-overflow-tooltip />
+              <el-table-column prop="originalFilename" label="文件名" min-width="180" />
+              <el-table-column prop="submittedBy" label="提交人" width="120" />
+              <el-table-column prop="createdAt" label="提交时间" width="180">
+                 <template #default="{ row }">
+                   {{ row.createdAt ? new Date(row.createdAt).toLocaleString('zh-CN') : '' }}
+                 </template>
+              </el-table-column>
+              <el-table-column label="操作" width="220" fixed="right">
+                <template #default="{ row }">
+                  <el-button size="small" type="success" @click="approveBatch(row)">通过</el-button>
+                  <el-button size="small" type="danger" @click="rejectBatch(row)">拒绝</el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+            <el-divider />
+          </div>
+
+          <h3 v-if="batchImports.length > 0" style="margin-bottom: 16px;">单条导入申请</h3>
           <el-table :data="pendingActivities" v-loading="loading" style="width:100%" class="hidden-xs-only">
             <el-table-column prop="name" label="名称" min-width="160" />
             <el-table-column label="提交人" width="120">
@@ -216,11 +283,40 @@ onMounted(fetchData)
         </el-tab-pane>
       </el-tabs>
 
-      <!-- 移动端卡片列表 (共享) -->
       <div class="activity-card-list" v-loading="loading">
-        <div v-if="(activeTab === 'normal' ? activities : (activeTab === 'imported' ? pendingActivities : personalRequests)).length === 0" class="empty-text">
+        <div v-if="(activeTab === 'normal' ? activities.length : (activeTab === 'imported' ? (batchImports.length + pendingActivities.length) : personalRequests.length)) === 0" class="empty-text">
           暂无审核中的项目
         </div>
+
+        <template v-if="activeTab === 'imported'">
+           <div v-for="item in batchImports" :key="'batch-' + item.id" class="activity-card-item batch-card">
+              <div class="card-header">
+                <div class="card-title">批量导入: {{ item.originalFilename }}</div>
+                <el-tag v-if="item.status === 'PENDING'" size="small" effect="dark" type="warning">待审核</el-tag>
+                <el-tag v-else-if="item.status === 'APPROVED'" size="small" effect="dark" type="success">已通过</el-tag>
+                <el-tag v-else-if="item.status === 'REJECTED'" size="small" effect="dark" type="danger">已拒绝</el-tag>
+              </div>
+              <div class="card-body">
+                 <div class="info-row">
+                   <span class="label">提交人:</span>
+                   <span class="value">{{ item.submittedBy }}</span>
+                 </div>
+                 <div class="info-row">
+                   <span class="label">记录数:</span>
+                   <span class="value">{{ item.totalRecords }}</span>
+                 </div>
+                 <div class="info-row">
+                   <span class="label">时间:</span>
+                   <span class="value">{{ item.createdAt ? new Date(item.createdAt).toLocaleString() : '' }}</span>
+                 </div>
+              </div>
+              <div class="card-actions" v-if="item.status === 'PENDING'">
+                <el-button size="small" type="success" @click="approveBatch(item)" plain>通过</el-button>
+                <el-button size="small" type="danger" @click="rejectBatch(item)" plain>拒绝</el-button>
+              </div>
+           </div>
+        </template>
+
         <div
           v-for="item in (activeTab === 'normal' ? activities : (activeTab === 'imported' ? pendingActivities : personalRequests))"
           :key="item.id"
@@ -265,20 +361,25 @@ onMounted(fetchData)
         </el-descriptions-item>
         <el-descriptions-item v-if="currentActivity.maxParticipants" label="人数限制">{{ currentActivity.maxParticipants }}</el-descriptions-item>
         <el-descriptions-item label="时长">{{ currentActivity.duration }} 小时</el-descriptions-item>
-        <el-descriptions-item label="封面">
-          <el-image
-            v-if="currentActivity.CoverImage"
-            :src="currentActivity.CoverImage"
-            :preview-src-list="[currentActivity.CoverImage]"
-            fit="contain"
-            style="max-width: 100%; max-height: 300px"
-          >
-            <template #placeholder>
-              <div style="width: 100%; height: 200px; background: #f5f5f5" />
-            </template>
-          </el-image>
-          <span v-else>无封面</span>
+        <el-descriptions-item v-if="currentActivity.status === 'FailReview' && currentActivity.reviewReason" label="拒绝原因">
+          <el-alert type="error" :closable="false" show-icon>
+            {{ currentActivity.reviewReason }}
+          </el-alert>
         </el-descriptions-item>
+<el-descriptions-item label="封面">
+  <el-image
+    v-if="currentActivity.CoverImage"
+    :src="getCoverImageUrl(currentActivity.CoverImage)"
+    :preview-src-list="[getCoverImageUrl(currentActivity.CoverImage)]"
+    fit="contain"
+    style="max-width: 100%; max-height: 300px"
+  >
+    <template #placeholder>
+      <div style="width: 100%; height: 200px; background: #f5f5f5" />
+    </template>
+  </el-image>
+  <span v-else>无封面</span>
+</el-descriptions-item>
         <el-descriptions-item label="附件" v-if="currentAttachments.length">
           <div v-for="(file, index) in currentAttachments" :key="index" class="attachment-item">
             <template v-if="file.match(/\.(jpg|jpeg|png|gif|bmp|webp)$/i)">
@@ -321,201 +422,57 @@ onMounted(fetchData)
 .admin-review {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 24px 28px;
   min-height: 80vh;
+  background: var(--page-bg);
 }
-
-/* Header */
-.page-header {
-  background: linear-gradient(135deg, #409eff 0%, #3a8ee6 100%);
-  border-radius: 16px;
-  padding: 40px;
-  margin-bottom: 30px;
-  color: white;
-  position: relative;
-  overflow: hidden;
-  box-shadow: 0 10px 20px rgba(64, 158, 255, 0.2);
-}
-
-.header-content {
-  position: relative;
-  z-index: 2;
-}
-
-.title {
-  font-size: 32px;
-  font-weight: 700;
-  margin: 0 0 10px 0;
-  letter-spacing: 1px;
-}
-
-.subtitle {
-  font-size: 16px;
-  opacity: 0.9;
-  margin: 0;
-  color: white;
-}
-
-.header-decoration .circle {
-  position: absolute;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.circle-1 {
-  width: 200px;
-  height: 200px;
-  top: -50px;
-  right: -50px;
-}
-
-.circle-2 {
-  width: 100px;
-  height: 100px;
-  bottom: -20px;
-  right: 100px;
-}
-
 .list-card {
-  border-radius: 12px;
-  border: none;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border-radius: var(--radius-card);
+  border: 1px solid var(--card-border) !important;
+  box-shadow: var(--card-shadow);
 }
-
-.attachment-item {
-  margin-bottom: 10px;
-}
-
+.attachment-item { margin-bottom: 10px; }
 .attachment-img {
   max-width: 100px;
   max-height: 100px;
-  border-radius: 4px;
-  border: 1px solid #eee;
+  border-radius: 6px;
+  border: 1px solid var(--card-border);
   display: block;
 }
-
-.img-wrapper {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-}
-
-.file-name {
-  font-size: 12px;
-  color: #606266;
-  margin-top: 4px;
-  word-break: break-all;
-}
-
+.img-wrapper { display: flex; flex-direction: column; align-items: flex-start; }
+.file-name { font-size: 12px; color: #64748b; margin-top: 4px; word-break: break-all; }
 .review-dialog { max-width: 700px; margin: 0 auto; }
-
-/* Mobile Card List */
-.activity-card-list {
-  display: none;
-}
-
+.activity-card-list { display: none; }
 .activity-card-item {
-  border: 1px solid #ebeef5;
-  border-radius: 8px;
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
   padding: 16px;
   margin-bottom: 12px;
-  background: #fff;
+  background: var(--card-bg);
+  box-shadow: var(--card-shadow);
 }
-
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 12px;
   padding-bottom: 8px;
-  border-bottom: 1px solid #f0f2f5;
+  border-bottom: 1px solid var(--card-border);
 }
-
-.card-title {
-  font-weight: 600;
-  font-size: 16px;
-  color: #303133;
-}
-
-.info-row {
-  font-size: 14px;
-  color: #606266;
-  margin-bottom: 6px;
-  display: flex;
-}
-
-.info-row .label {
-  color: #909399;
-  margin-right: 8px;
-  min-width: 50px;
-}
-
-.info-row .value {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.card-actions {
-  display: flex;
-  gap: 10px;
-  margin-top: 12px;
-}
-
-.card-actions :deep(.el-button) {
-  flex: 1;
-}
-
-.empty-text {
-  text-align: center;
-  padding: 30px 0;
-  color: #909399;
-}
-
-/* Responsive */
+.card-title { font-weight: 600; font-size: 16px; color: #0f172a; }
+.info-row { font-size: 14px; color: #475569; margin-bottom: 6px; display: flex; }
+.info-row .label { color: #94a3b8; margin-right: 8px; min-width: 50px; }
+.info-row .value { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card-actions { display: flex; gap: 10px; margin-top: 12px; }
+.card-actions :deep(.el-button) { flex: 1; }
+.empty-text { text-align: center; padding: 30px 0; color: #94a3b8; }
 @media (max-width: 768px) {
-  .admin-review { padding: 10px; }
-  
-  .page-header {
-    padding: 24px;
-    border-radius: 8px;
-  }
-  
-  .header-decoration {
-    display: none;
-  }
-  
-  .title {
-    font-size: 24px;
-  }
-  
-  .subtitle {
-    font-size: 14px;
-  }
-  
-  /* Hide table, show list */
+  .admin-review { padding: 16px; }
   .hidden-xs-only { display: none !important; }
   .activity-card-list { display: block; }
-
-  :deep(.el-dialog) {
-    width: 95% !important;
-    margin: 0 auto !important;
-  }
-
-  :deep(.el-descriptions__cell) {
-    display: block;
-    padding: 8px !important;
-  }
-
-  :deep(.el-descriptions__item) {
-    display: flex;
-    flex-direction: column;
-  }
-
-  :deep(.el-descriptions__label) {
-    font-weight: 600;
-    margin-bottom: 4px;
-  }
+  :deep(.el-dialog) { width: 95% !important; margin: 0 auto !important; }
+  :deep(.el-descriptions__cell) { display: block; padding: 8px !important; }
+  :deep(.el-descriptions__item) { display: flex; flex-direction: column; }
+  :deep(.el-descriptions__label) { font-weight: 600; margin-bottom: 4px; }
 }
 </style>

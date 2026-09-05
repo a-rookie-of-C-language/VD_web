@@ -6,6 +6,7 @@ type RequestConfig = {
   params?: Record<string, unknown>
   data?: unknown
   headers?: Record<string, string>
+  skipAuth?: boolean
 }
 
 type ApiLikeResponse = {
@@ -121,7 +122,7 @@ function assertBusinessSuccess(payload: unknown): void {
 }
 
 export async function httpRequest<T>(config: RequestConfig): Promise<T> {
-  const headers = { ...getAuthHeaders(), ...(config.headers || {}) }
+  const headers = { ...(config.skipAuth ? {} : getAuthHeaders()), ...(config.headers || {}) }
   const isFormData = config.data instanceof FormData
 
   if (!isFormData && window.api && typeof window.api.request === 'function') {

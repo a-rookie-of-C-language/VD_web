@@ -25,7 +25,8 @@ export const userService = {
         const response = await httpRequest<ApiResponse<LoginResponse>>({
             method: 'post',
             url: `${API_BASE_URL}/user/login`,
-            data: { studentNo, password }
+            data: { studentNo, password },
+            skipAuth: true
         })
         if (response.code === 200) {
             const userData = response.data

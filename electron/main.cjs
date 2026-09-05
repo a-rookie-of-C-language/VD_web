@@ -3,6 +3,11 @@ const path = require('path')
 const {autoUpdater} = require('electron-updater')
 const axios = require('axios')
 
+// Redirect userData to a writable path inside the bundle to avoid cache permission errors
+if (app.isPackaged) {
+    app.setPath('userData', path.join(__dirname, '../../../../../data/electron-cache'))
+}
+
 function createWindow() {
     const win = new BrowserWindow({
         width: 1200,
@@ -38,9 +43,8 @@ app.whenReady().then(() => {
         const baseUrl = process.env.UPDATE_BASE_URL
         if (baseUrl) {
             autoUpdater.setFeedURL({provider: 'generic', url: baseUrl})
-        }
-        autoUpdater.autoDownload = false
-        autoUpdater.on('update-available', async () => {
+            autoUpdater.autoDownload = false
+            autoUpdater.on('update-available', async () => {
             const r = await dialog.showMessageBox({
                 type: 'info',
                 buttons: ['下载并安装', '稍后'],
@@ -65,14 +69,16 @@ app.whenReady().then(() => {
             if (r.response === 0) {
                 autoUpdater.quitAndInstall()
             }
-        })
-        setTimeout(() => {
-            autoUpdater.checkForUpdates()
-        }, 5000)
+            })
+            setTimeout(() => {
+                autoUpdater.checkForUpdates()
+            }, 5000)
+        }
     }
     
     ipcMain.handle('http-request', async (_event, payload) => {
-        const {method, url, params, data, headers} = payload || {}
+        const {method, url: rawUrl, params, data, headers} = payload || {}
+        const url = rawUrl && rawUrl.startsWith('http') ? rawUrl : `http://localhost:8080${rawUrl || ''}`
         const mergedHeaders = Object.assign({
             'ngrok-skip-browser-warning': 'true',
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0 Safari/537.36'

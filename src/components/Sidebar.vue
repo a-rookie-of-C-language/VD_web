@@ -13,8 +13,9 @@ import {
   Upload,
   ChatDotRound,
 } from '@element-plus/icons-vue'
-import {ElMessage, ElMessageBox} from 'element-plus'
+import {ElMessage} from 'element-plus'
 import {useUserStore} from '@/stores/useUserStore'
+import { confirmAction } from '@/services/confirmService'
 
 const router = useRouter()
 const route = useRoute()
@@ -48,7 +49,9 @@ const allMenuItems: MenuItem[] = [
   {index: '/app/request-hours', label: '申请时长', icon: Document, roles: ['user']},
   {index: '/app/suggestion-box', label: '意见反馈', icon: ChatDotRound},
   {index: '/app/admin-review', label: '管理员审核', icon: Document, roles: ['admin']},
-  {index: '/app/system-monitor', label: '系统监控', icon: Monitor, roles: ['superAdmin']},
+  {index: '/app/system-monitor', label: '业务监控', icon: DataLine, roles: ['superAdmin']},
+  {index: '/app/developer-monitor', label: '开发者监控', icon: Monitor, roles: ['superAdmin']},
+  {index: '/app/log-center', label: '日志中心', icon: Document, roles: ['superAdmin']},
   {index: '/app/my-stats', label: '我的时长', icon: DataLine, roles: ['user']}
 ]
 
@@ -61,18 +64,11 @@ const visibleMenuItems = computed(() => {
 })
 
 const handleLogout = async () => {
-  try {
-    await ElMessageBox.confirm('确定要退出登录吗?', '提示', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
-    })
-    userStore.clearUser()
-    ElMessage.success('已退出登录')
-    await router.push('/')
-  } catch {
-    // cancelled
-  }
+  const confirmed = await confirmAction('确定要退出登录吗?')
+  if (!confirmed) return
+  userStore.clearUser()
+  ElMessage.success('已退出登录')
+  await router.push('/')
 }
 
 const isMobile = ref(false)

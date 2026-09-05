@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, computed } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
 import { activityService } from '@/services/activityService'
 import { pendingActivityService } from '@/services/pendingActivityService'
 import { batchImportService } from '@/services/batchImportService'
@@ -11,6 +11,7 @@ import type { Activity } from '@/entity/Activity'
 import { ActivityStatus } from '@/entity/ActivityStatus'
 import { getAttachmentUrl, getCoverImageUrl } from '@/util/util'
 import PageHeader from '@/components/PageHeader.vue'
+import { confirmAction, promptRequired } from '@/services/confirmService'
 
 const activeTab = ref('normal')
 const loading = ref(false)
@@ -108,7 +109,8 @@ const showDetail = (a: Activity) => {
 
 const approve = async (a: Activity) => {
   try {
-    await ElMessageBox.confirm('确认通过该项目审核吗？','审核通过',{ type: 'success' })
+    const confirmed = await confirmAction('确认通过该项目审核吗？')
+    if (!confirmed) return
     if (activeTab.value === 'normal') {
       await activityService.reviewActivity(a.id, true)
     } else if (activeTab.value === 'imported') {
@@ -119,22 +121,15 @@ const approve = async (a: Activity) => {
     ElMessage.success('已通过审核')
     detailVisible.value = false
     fetchData()
-  } catch (e:any) {
-    if (e !== 'cancel') {
-      ElMessage.error('操作失败')
-    }
+  } catch {
+    ElMessage.error('操作失败')
   }
 }
 
 const reject = async (a: Activity) => {
   try {
-    const { value } = await ElMessageBox.prompt('请输入拒绝原因', '审核拒绝', {
-      confirmButtonText: '确认拒绝',
-      cancelButtonText: '取消',
-      inputPattern: /\S+/,
-      inputErrorMessage: '拒绝原因不能为空',
-      type: 'warning'
-    })
+    const value = await promptRequired('请输入拒绝原因')
+    if (!value) return
     
     if (activeTab.value === 'normal') {
       await activityService.reviewActivity(a.id, false, value)
@@ -146,45 +141,35 @@ const reject = async (a: Activity) => {
     ElMessage.success('已拒绝')
     detailVisible.value = false
     fetchData()
-  } catch (e:any) {
-    if (e !== 'cancel') {
-      console.error(e)
-      ElMessage.error('操作失败')
-    }
+  } catch (e) {
+    console.error(e)
+    ElMessage.error('操作失败')
   }
 }
 
 const approveBatch = async (batch: any) => {
   try {
-    await ElMessageBox.confirm('确认通过该批量导入申请吗？', '审核通过', { type: 'success' })
+    const confirmed = await confirmAction('确认通过该批量导入申请吗？')
+    if (!confirmed) return
     await batchImportService.approveBatchImport(batch.id)
     ElMessage.success('已通过审核')
     fetchData()
-  } catch (e: any) {
-    if (e !== 'cancel') {
-      console.error(e)
-      ElMessage.error('操作失败')
-    }
+  } catch (e) {
+    console.error(e)
+    ElMessage.error('操作失败')
   }
 }
 
 const rejectBatch = async (batch: any) => {
   try {
-    const { value } = await ElMessageBox.prompt('请输入拒绝原因', '审核拒绝', {
-      confirmButtonText: '确认拒绝',
-      cancelButtonText: '取消',
-      inputPattern: /\S+/,
-      inputErrorMessage: '拒绝原因不能为空',
-      type: 'warning'
-    })
+    const value = await promptRequired('请输入拒绝原因')
+    if (!value) return
     await batchImportService.rejectBatchImport(batch.id, value)
     ElMessage.success('已拒绝')
     fetchData()
-  } catch (e: any) {
-    if (e !== 'cancel') {
-      console.error(e)
-      ElMessage.error('操作失败')
-    }
+  } catch (e) {
+    console.error(e)
+    ElMessage.error('操作失败')
   }
 }
 

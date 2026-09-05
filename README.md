@@ -1,6 +1,6 @@
 # VolunteerDashboard (VD)
 
-志愿者活动管理与统计平台，基于 Vue 3 + Vite 构建前端，支持 Electron 桌面端打包与 Capacitor 移动端集成。提供活动发布、导入、报名、审核、时长统计、系统监控等功能。
+志愿者活动管理与统计平台，基于 Vue 3 + Vite 构建前端，支持 Electron 桌面端打包。提供活动发布、导入、报名、审核、时长统计、系统监控等功能。
 
 ## 技术栈
 
@@ -10,7 +10,6 @@
 - 路由：Vue Router
 - 网络：Axios
 - 桌面端：Electron + electron-builder + electron-updater
-- 移动端：Capacitor（Android/iOS）
 
 ## 运行要求
 
@@ -55,8 +54,6 @@ VD/
 │  ├─ main.ts                # 应用入口（挂载 Element Plus、路由）
 │  └─ App.vue
 ├─ electron/main.cjs         # Electron 主进程入口
-├─ android/                  # Capacitor Android 工程
-├─ ios/                      # Capacitor iOS 工程
 ├─ dist/                     # Web 构建产物（vite build）
 ├─ release/                  # 桌面打包产物（electron-builder）
 ├─ vite.config.ts            # Vite 配置
@@ -103,4 +100,3 @@ VD/
 ## 许可
 
 - 项目同时包含第三方组件与 Electron 运行时，打包目录 `release/` 会附带相关许可证文件。
-

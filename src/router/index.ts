@@ -1,14 +1,11 @@
 import { createRouter, createWebHashHistory, type RouteRecordRaw } from 'vue-router'
-import LoginPage from '../pages/LoginPage.vue'
-import AllActivities from '../pages/AllActivities.vue'
-import MainLayout from '../layouts/MainLayout.vue'
 import { userService } from '@/services/userService'
 
 const routes: Array<RouteRecordRaw> = [
     {
         path: '/',
         name: 'Login',
-        component: LoginPage
+        component: () => import('../pages/LoginPage.vue')
     },
     {
         path: '/login',
@@ -16,7 +13,7 @@ const routes: Array<RouteRecordRaw> = [
     },
     {
         path: '/app',
-        component: MainLayout,
+        component: () => import('../layouts/MainLayout.vue'),
         meta: { requiresAuth: true },
         children: [
             {
@@ -26,7 +23,7 @@ const routes: Array<RouteRecordRaw> = [
             {
                 path: 'activities',
                 name: 'AllActivities',
-                component: AllActivities
+                component: () => import('../pages/AllActivities.vue')
             },
             {
                 path: 'add-activity',
@@ -64,6 +61,16 @@ const routes: Array<RouteRecordRaw> = [
                 component: () => import('../pages/SystemMonitor.vue')
             },
             {
+                path: 'developer-monitor',
+                name: 'DeveloperMonitor',
+                component: () => import('../pages/DeveloperMonitor.vue')
+            },
+            {
+                path: 'log-center',
+                name: 'LogCenter',
+                component: () => import('../pages/LogCenter.vue')
+            },
+            {
                 path: 'suggestion-box',
                 name: 'SuggestionBox',
                 component: () => import('../pages/SuggestionBox.vue')
@@ -84,6 +91,8 @@ const routes: Array<RouteRecordRaw> = [
     { path: '/request-hours', redirect: '/app/request-hours' },
     { path: '/admin-review', redirect: '/app/admin-review' },
     { path: '/system-monitor', redirect: '/app/system-monitor' },
+    { path: '/developer-monitor', redirect: '/app/developer-monitor' },
+    { path: '/log-center', redirect: '/app/log-center' },
     { path: '/suggestion-box', redirect: '/app/suggestion-box' },
     { path: '/activity/:id', redirect: to => `/app/activity/${to.params.id}` }
 ]

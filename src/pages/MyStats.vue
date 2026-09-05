@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {ref, onMounted, watch} from 'vue'
 import { useRouter } from 'vue-router'
-import {ElMessage, ElMessageBox} from 'element-plus'
+import {ElMessage} from 'element-plus'
 import {activityService} from '@/services/activityService'
 import {hourRequestService} from '@/services/hourRequestService'
 import type {Activity} from '@/entity/Activity'
@@ -10,7 +10,8 @@ import {Timer, Trophy, Calendar, ArrowRight, User as UserIcon, SwitchButton} fro
 import {ActivityStatus} from '@/entity/ActivityStatus'
 import { getActivityTypeLabel, getActivityStatusLabel } from '@/util/util'
 import PageHeader from '@/components/PageHeader.vue'
-import { getStatusTagType, formatTimeRange } from '@/composables/useActivityHelpers'
+import { formatTimeRange } from '@/composables/useActivityHelpers'
+import { confirmAction } from '@/services/confirmService'
 
 type ActivityWithRequest = Activity & { isPersonalRequest?: boolean }
 
@@ -57,18 +58,11 @@ const fetchParticipated = async () => {
 }
 
 const handleLogout = async () => {
-  try {
-    await ElMessageBox.confirm('确定要退出登录吗？', '提示', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
-    })
-    userStore.clearUser()
-    ElMessage.success('已退出登录')
-    await router.push('/')
-  } catch (e) {
-    // cancelled
-  }
+  const confirmed = await confirmAction('确定要退出登录吗？')
+  if (!confirmed) return
+  userStore.clearUser()
+  ElMessage.success('已退出登录')
+  await router.push('/')
 }
 
 const getStatusType = (status: ActivityStatus) => {

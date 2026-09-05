@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {computed, onMounted, onUnmounted, ref} from 'vue'
 import type {UploadFile, UploadProps} from 'element-plus'
-import {ElMessage, ElMessageBox} from 'element-plus'
+import {ElMessage} from 'element-plus'
 import {Document, Edit, RefreshLeft, Search, UploadFilled, User, View,} from '@element-plus/icons-vue'
 import {activityService} from '@/services/activityService'
 import type {Activity} from '@/entity/Activity'
@@ -12,6 +12,7 @@ import {userService} from '@/services/userService'
 import dayjs from 'dayjs'
 import { getActivityTypeLabel, getActivityStatusLabel, getAttachmentUrl, getCoverImageUrl } from '@/util/util'
 import PageHeader from '@/components/PageHeader.vue'
+import { confirmAction } from '@/services/confirmService'
 
 const userStore = useUserStore()
 const activities = ref<Activity[]>([])
@@ -131,15 +132,14 @@ const handleEditCoverChange: UploadProps['onChange'] = (uploadFile: UploadFile) 
 
 const revoke = async (a: Activity) => {
   try {
-    await ElMessageBox.confirm('确认撤销该项目的审核吗？','撤销确认',{ type: 'warning' })
+    const confirmed = await confirmAction('确认撤销该项目的审核吗？')
+    if (!confirmed) return
     await activityService.deleteActivity(a.id)
     ElMessage.success('已撤销审核')
     await fetchMine()
-  } catch (e:any) {
-    if (e !== 'cancel') {
-      console.error(e)
-      ElMessage.error('撤销失败')
-    }
+  } catch (e) {
+    console.error(e)
+    ElMessage.error('撤销失败')
   }
 }
 
@@ -179,7 +179,8 @@ const openSettlement = async (a: Activity) => {
 const submitSettlement = async () => {
   if (!settlementActivity.value) return
   try {
-    await ElMessageBox.confirm('确认结束活动并进行结算吗？未选中的参与者将不会获得志愿时长。', '结算确认', { type: 'warning' })
+    const confirmed = await confirmAction('确认结束活动并进行结算吗？未选中的参与者将不会获得志愿时长。')
+    if (!confirmed) return
     const next: any = { 
       ...settlementActivity.value, 
       status: ActivityStatus.ActivityEnded,
@@ -189,11 +190,9 @@ const submitSettlement = async () => {
     ElMessage.success('活动已结束，时长已发放给符合条件的参与者')
     settlementDialogVisible.value = false
     await fetchMine()
-  } catch (e: any) {
-    if (e !== 'cancel') {
-      console.error(e)
-      ElMessage.error('操作失败')
-    }
+  } catch (e) {
+    console.error(e)
+    ElMessage.error('操作失败')
   }
 }
 

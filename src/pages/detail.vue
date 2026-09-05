@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
 import { ArrowLeft, Timer, User, Document, Download } from '@element-plus/icons-vue'
 import { activityService } from '@/services/activityService'
 import type { Activity } from '@/entity/Activity'
@@ -9,7 +9,7 @@ import { ActivityStatus } from '@/entity/ActivityStatus'
 import { useUserStore } from '@/stores/useUserStore'
 import { getActivityTypeLabel, getActivityStatusLabel, getAttachmentUrl, getCoverImageUrl } from '@/util/util'
 import defaultActivityImage from '@/image/activity-card-bg.png'
-
+import { confirmAction } from '@/services/confirmService'
 
 const route = useRoute()
 const router = useRouter()
@@ -93,11 +93,8 @@ const handleToggleEnroll = async () => {
 
   try {
     if (!isEnrolled.value) {
-      await ElMessageBox.confirm('确定要报名参加该活动吗？', '报名确认', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'info'
-      })
+      const confirmed = await confirmAction('确定要报名参加该活动吗？', '报名确认')
+      if (!confirmed) return
       enrolling.value = true
       const response = await activityService.enrollActivity(activity.value.id)
       if (response.code === 200) {
@@ -111,11 +108,8 @@ const handleToggleEnroll = async () => {
         ElMessage.warning('报名已结束或负责人账号，无法取消报名')
         return
       }
-      await ElMessageBox.confirm('确定要取消报名吗？', '取消确认', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      })
+      const confirmed = await confirmAction('确定要取消报名吗？', '取消确认')
+      if (!confirmed) return
       enrolling.value = true
       const response = await activityService.unenrollActivity(activity.value.id)
       if (response.code === 200) {

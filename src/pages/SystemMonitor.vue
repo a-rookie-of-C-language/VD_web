@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { ElMessage } from 'element-plus'
 import { DataLine, User, Timer, Trophy } from '@element-plus/icons-vue'
-import { monitorService, type MonitorOverview, type TopUser, type UserStatItem } from '@/services/monitorService'
+import { monitorService, type BusinessOperationLogItem, type MonitorOverview, type TopUser, type UserStatItem } from '@/services/monitorService'
 import { userService } from '@/services/userService'
 import type { User as UserEntity } from '@/entity/User'
 import PageHeader from '@/components/PageHeader.vue'
+import { notifyRequestError } from '@/services/uiErrorService'
 
 const filterClazz = ref('')
 const filterGrade = ref('')
@@ -33,6 +33,9 @@ const topUsers = ref<TopUser[]>([])
 const allUsersMap = ref<Map<string, UserEntity>>(new Map())
 
 const userStatsList = ref<UserStatItem[]>([])
+const businessLogs = ref<BusinessOperationLogItem[]>([])
+const bizLogKeyword = ref('')
+const bizLogLoading = ref(false)
 
 const loading = ref(false)
 
@@ -43,7 +46,15 @@ const averageActivities = computed(() => {
 
 const enrichedUsers = computed(() => {
   if (userStatsList.value.length > 0) {
-    return userStatsList.value
+    return userStatsList.value.map(user => {
+      const userDetail = allUsersMap.value.get(user.studentNo)
+      return {
+        ...user,
+        college: user.college || userDetail?.college || '-',
+        grade: user.grade || userDetail?.grade || '-',
+        clazz: user.clazz || userDetail?.clazz || '-'
+      }
+    })
   }
   
   return topUsers.value.map(user => {
@@ -87,16 +98,85 @@ const fetchMonitorData = async () => {
     }
 
   } catch (e) {
-    console.error(e)
-    ElMessage.error('加载监控数据失败')
+    notifyRequestError(e, '加载监控数据失败')
   } finally {
     loading.value = false
   }
 }
 
+const fetchBusinessLogs = async () => {
+  bizLogLoading.value = true
+  try {
+    businessLogs.value = await monitorService.getBusinessLogs(80, bizLogKeyword.value)
+  } catch (e) {
+    notifyRequestError(e, '加载业务操作日志失败')
+  } finally {
+    bizLogLoading.value = false
+  }
+}
+
+const formatLogTime = (value: string) => {
+  if (!value) return '-'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return date.toLocaleString()
+}
+
+const resolveOperatorName = (studentNo: string) => {
+  if (!studentNo) return ''
+  return allUsersMap.value.get(studentNo)?.username || ''
+}
+
+const resolveOperatorTooltip = (studentNo: string) => {
+  const name = resolveOperatorName(studentNo)
+  if (name) {
+    return `学生姓名: ${name}`
+  }
+  return '学生姓名: 未知'
+}
+
+const resolveActionLabel = (item: BusinessOperationLogItem) => {
+  if (!item.targetId) return item.action || '-'
+  return `${item.action} #${item.targetId}`
+}
+
+const resolveTargetTooltip = (item: BusinessOperationLogItem) => {
+  return item.targetName || ''
+}
+
+const applyUserDirectory = (users: UserEntity[]) => {
+  const userMap = new Map<string, UserEntity>()
+  const clazzSet = new Set<string>()
+  const gradeSet = new Set<string>()
+  const collegeSet = new Set<string>()
+
+  users.forEach(u => {
+    if (u.studentNo) {
+      userMap.set(u.studentNo, u)
+    }
+    if (u.clazz) clazzSet.add(u.clazz)
+    if (u.grade) gradeSet.add(u.grade)
+    if (u.college) collegeSet.add(u.college)
+  })
+
+  allUsersMap.value = userMap
+  return {
+    clazzes: Array.from(clazzSet).sort(),
+    grades: Array.from(gradeSet).sort(),
+    colleges: Array.from(collegeSet).sort()
+  }
+}
+
+const fetchUserDirectory = async () => {
+  const users = await userService.getAllUsers()
+  return applyUserDirectory(users)
+}
+
 const fetchFilterOptions = async () => {
   try {
     const filters = await monitorService.getFilterOptions()
+    const directory = await fetchUserDirectory()
+
     if (filters && (filters.clazzes.length || filters.grades.length || filters.colleges.length)) {
         clazzOptions.value = filters.clazzes
         gradeOptions.value = filters.grades
@@ -104,23 +184,19 @@ const fetchFilterOptions = async () => {
         return
     }
 
-    const users = await userService.getAllUsers()
-    const clazzSet = new Set<string>()
-    const gradeSet = new Set<string>()
-    const collegeSet = new Set<string>()
-    
-    users.forEach(u => {
-      if (u.studentNo) allUsersMap.value.set(u.studentNo, u)
-      if (u.clazz) clazzSet.add(u.clazz)
-      if (u.grade) gradeSet.add(u.grade)
-      if (u.college) collegeSet.add(u.college)
-    })
-    
-    clazzOptions.value = Array.from(clazzSet).sort()
-    gradeOptions.value = Array.from(gradeSet).sort()
-    collegeOptions.value = Array.from(collegeSet).sort()
+    clazzOptions.value = directory.clazzes
+    gradeOptions.value = directory.grades
+    collegeOptions.value = directory.colleges
   } catch (e) {
-    console.error('Failed to fetch filter options', e)
+    notifyRequestError(e, '加载筛选项失败')
+    try {
+      const directory = await fetchUserDirectory()
+      clazzOptions.value = directory.clazzes
+      gradeOptions.value = directory.grades
+      collegeOptions.value = directory.colleges
+    } catch (innerError) {
+      notifyRequestError(innerError, '加载用户目录失败')
+    }
   }
 }
 
@@ -132,12 +208,13 @@ const handlePageChange = (page: number) => {
 onMounted(() => {
   fetchFilterOptions()
   fetchMonitorData()
+  fetchBusinessLogs()
 })
 </script>
 
 <template>
   <div class="monitor-page">
-    <PageHeader title="系统监控大屏" subtitle="实时监控系统运行状态，掌握志愿活动数据">
+    <PageHeader title="系统监控（业务版）" subtitle="业务数据与关键操作行为追踪">
       <template #controls>
         <div class="header-controls">
           <el-select v-model="filterClazz" placeholder="班级筛选" clearable size="default" @change="fetchMonitorData" class="filter-select">
@@ -149,6 +226,14 @@ onMounted(() => {
           <el-select v-model="filterCollege" placeholder="学院筛选" clearable size="default" @change="fetchMonitorData" class="filter-select">
             <el-option v-for="c in collegeOptions" :key="c" :label="c" :value="c" />
           </el-select>
+          <el-input
+            v-model="bizLogKeyword"
+            placeholder="操作日志关键字"
+            clearable
+            class="filter-input"
+            @keyup.enter="fetchBusinessLogs"
+          />
+          <el-button type="primary" :loading="bizLogLoading" @click="fetchBusinessLogs">刷新日志</el-button>
         </div>
       </template>
     </PageHeader>
@@ -269,6 +354,57 @@ onMounted(() => {
         />
       </div>
     </el-card>
+
+    <el-card shadow="hover" class="list-card">
+      <template #header>
+        <div class="card-header-text">
+          <span>业务操作日志（ES）</span>
+        </div>
+      </template>
+      <el-table :data="businessLogs" stripe style="width: 100%" v-loading="bizLogLoading" class="hidden-xs-only">
+        <el-table-column label="时间" width="190">
+          <template #default="{ row }">{{ formatLogTime(row.timestamp) }}</template>
+        </el-table-column>
+        <el-table-column label="操作人" width="150">
+          <template #default="{ row }">
+            <el-tooltip :content="resolveOperatorTooltip(row.operatorStudentNo)" placement="top">
+              <span class="hover-ref">{{ row.operatorStudentNo || '-' }}</span>
+            </el-tooltip>
+          </template>
+        </el-table-column>
+        <el-table-column prop="operatorRole" label="角色" width="120" />
+        <el-table-column label="动作" min-width="220">
+          <template #default="{ row }">
+            <el-tooltip
+              :content="resolveTargetTooltip(row)"
+              placement="top"
+              :disabled="!row.targetName"
+            >
+              <span class="hover-ref">{{ resolveActionLabel(row) }}</span>
+            </el-tooltip>
+          </template>
+        </el-table-column>
+        <el-table-column prop="targetName" label="目标" min-width="220" show-overflow-tooltip />
+        <el-table-column prop="detail" label="详情" min-width="260" show-overflow-tooltip />
+        <el-table-column prop="status" label="结果" width="100" />
+      </el-table>
+
+      <div class="visible-xs-only mobile-user-list" v-loading="bizLogLoading">
+        <div v-for="(item, index) in businessLogs" :key="`${item.timestamp}-${index}`" class="mobile-user-card">
+          <div class="user-card-header">
+            <span class="user-name">{{ item.action }}</span>
+            <span class="user-no">{{ formatLogTime(item.timestamp) }}</span>
+          </div>
+          <div class="user-card-body">
+            <div class="info-row"><span class="label">操作人:</span> {{ item.operatorStudentNo }} ({{ resolveOperatorName(item.operatorStudentNo) || '未知姓名' }})</div>
+            <div class="info-row"><span class="label">动作:</span> {{ resolveActionLabel(item) }}</div>
+            <div class="info-row"><span class="label">目标:</span> {{ item.targetName || '-' }}</div>
+            <div class="info-row"><span class="label">详情:</span> {{ item.detail || '-' }}</div>
+            <div class="info-row"><span class="label">结果:</span> {{ item.status || '-' }}</div>
+          </div>
+        </div>
+      </div>
+    </el-card>
   </div>
 </template>
 
@@ -286,6 +422,7 @@ onMounted(() => {
   flex-wrap: wrap;
 }
 .filter-select { width: 150px; }
+.filter-input { width: 220px; }
 .list-card {
   border-radius: var(--radius-card);
   border: 1px solid var(--card-border) !important;
@@ -339,6 +476,12 @@ onMounted(() => {
 .rank-3 { background: linear-gradient(135deg, var(--brand-400, #818cf8), var(--brand-500)); color: white; }
 .pagination-container { margin-top: 20px; display: flex; justify-content: flex-end; }
 .mb-4 { margin-bottom: 20px; }
+.hover-ref {
+  color: var(--brand-600);
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+}
 @media (max-width: 768px) {
   .monitor-page { padding: 16px; }
   .header-controls { flex-direction: column; width: 100%; align-items: stretch; }
